@@ -1,5 +1,5 @@
 // pages/api/like.js
-// ChatGPT-powered matches (Node.js runtime)
+// ChatGPT-powered matches + Google News snippet (Node.js runtime)
 
 import OpenAI from "openai";
 
@@ -16,15 +16,66 @@ function setCors(req, res) {
   if (origin === allowedOrigin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
-  
+
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // set this in Vercel → Project → Settings → Environment Variables
+  apiKey: process.env.OPENAI_API_KEY,
 });
+
+// --- Simple RSS parsing helpers (no extra deps) ---
+function firstMatch(re, text) {
+  const m = re.exec(text);
+  return m ? m[1].trim() : "";
+}
+
+function sanitize(str) {
+  return String(str || "")
+    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+async function fetchNews(query) {
+  // Google News RSS search
+  const url =
+    "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" +
+    encodeURIComponent(query + " (food OR restaurant OR travel)");
+
+  try {
+    const r = await fetch(url, { method: "GET" });
+    const xml = await r.text();
+    // grab first <item>...</item>
+    const item = firstMatch(/<item>([\s\S]*?)<\/item>/i, xml);
+    if (!item) return null;
+
+    const title = sanitize(firstMatch(/<title>([\s\S]*?)<\/title>/i, item));
+    const link = sanitize(firstMatch(/<link>([\s\S]*?)<\/link>/i, item));
+    const desc = sanitize(firstMatch(/<description>([\s\S]*?)<\/description>/i, item));
+    // media:content or enclosure image (may not exist)
+    const media =
+      firstMatch(/<media:content[^>]*url="([^"]+)"/i, item) ||
+      firstMatch(/<enclosure[^>]*url="([^"]+)"/i, item) ||
+      "";
+
+    return {
+      title: title || "",
+      url: link || "",
+      image: media || "",
+      snippet:
+        (desc || "").replace(/<[^>]+>/g, "").slice(0, 180) +
+        ((desc && desc.length > 180) ? "…" : ""),
+    };
+  } catch {
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
   setCors(req, res);
@@ -37,7 +88,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.2.0",
+      version: "0.3.0",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
     });
   }
@@ -61,7 +112,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Prompt: ask the model for 3 JSON results only
+    // Ask the model for 3 JSON results only
     const userPrompt = `
 You are a neighborhood-matching engine.
 Given:
@@ -92,7 +143,6 @@ Rules:
 - Be accurate and avoid duplicates.
 `;
 
-    // Use Chat Completions (Node.js)
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.7,
@@ -103,18 +153,16 @@ Rules:
     });
 
     let text = completion.choices?.[0]?.message?.content || "{}";
-
-    // Clean possible code fences and parse JSON
     text = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "");
+
     let parsed;
     try {
       parsed = JSON.parse(text);
-    } catch (e) {
-      parsed = { results: Array.isArray(text) ? text : [] };
+    } catch {
+      parsed = { results: [] };
     }
 
     const results = Array.isArray(parsed?.results) ? parsed.results.slice(0, 3) : [];
-
     if (results.length === 0) {
       return res.status(200).json({
         ok: true,
@@ -125,7 +173,7 @@ Rules:
       });
     }
 
-    // Normalize and ensure required fields
+    // Normalize
     const normalized = results.map((r, i) => ({
       rank: typeof r.rank === "number" ? r.rank : i + 1,
       match: r.match || r.neighborhood || "Unknown",
@@ -137,12 +185,21 @@ Rules:
       source: "openai",
     }));
 
+    // Attach 1 news item per match (best-effort; non-blocking failures)
+    const withNews = await Promise.all(
+      normalized.map(async (item) => {
+        const q = `${item.match} ${item.city} ${item.region} food OR travel`;
+        const news = await fetchNews(q);
+        return { ...item, news: news || null };
+      })
+    );
+
     return res.status(200).json({
       ok: true,
-      count: normalized.length,
+      count: withNews.length,
       place,
       region,
-      results: normalized,
+      results: withNews,
     });
   } catch (err) {
     console.error(err);
@@ -153,4 +210,3 @@ Rules:
     });
   }
 }
-
