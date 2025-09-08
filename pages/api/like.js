@@ -1,5 +1,5 @@
 // pages/api/like.js
-// ChatGPT-powered matches + Google News snippet (Node.js runtime)
+// ChatGPT-powered matches + Travel-only news snippet (Node.js runtime)
 
 import OpenAI from "openai";
 
@@ -46,14 +46,17 @@ function sanitize(str) {
 }
 
 async function fetchNews(query) {
+  // Travel-focused Google News RSS
   const url =
     "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" +
-    encodeURIComponent(query + " (food OR restaurant OR travel)");
+    encodeURIComponent(query + " (travel OR tourism OR visit OR guide)");
+
   try {
     const r = await fetch(url, { method: "GET" });
     const xml = await r.text();
     const item = firstMatch(/<item>([\s\S]*?)<\/item>/i, xml);
     if (!item) return null;
+
     const title = sanitize(firstMatch(/<title>([\s\S]*?)<\/title>/i, item));
     const link = sanitize(firstMatch(/<link>([\s\S]*?)<\/link>/i, item));
     const desc = sanitize(firstMatch(/<description>([\s\S]*?)<\/description>/i, item));
@@ -61,6 +64,7 @@ async function fetchNews(query) {
       firstMatch(/<media:content[^>]*url="([^"]+)"/i, item) ||
       firstMatch(/<enclosure[^>]*url="([^"]+)"/i, item) ||
       "";
+
     return {
       title: title || "",
       url: link || "",
@@ -83,9 +87,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.3.1",
+      version: "0.3.2",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
-      cors: "whitelist",
+      news_filter: "travel-only",
     });
   }
 
@@ -105,6 +109,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
     }
 
+    // Ask the model for 3 JSON results only
     const userPrompt = `
 You are a neighborhood-matching engine.
 Given:
@@ -170,9 +175,10 @@ Rules:
       source: "openai",
     }));
 
+    // Attach 1 travel news item per match (best-effort)
     const withNews = await Promise.all(
       normalized.map(async (item) => {
-        const q = `${item.match} ${item.city} ${item.region} food OR travel`;
+        const q = `${item.match} ${item.city} ${item.region}`;
         const news = await fetchNews(q);
         return { ...item, news: news || null };
       })
