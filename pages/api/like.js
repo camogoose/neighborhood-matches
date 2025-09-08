@@ -9,11 +9,18 @@ export const config = {
 };
 
 function setCors(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*"); // swap '*' for your Squarespace domain later
+  const allowedOrigin = "https://www.vorrasi.com"; // 👈 your Squarespace domain
+  const origin = req.headers.origin;
+
+  if (origin === allowedOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
+
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // set this in Vercel → Project → Settings → Environment Variables
