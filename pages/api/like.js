@@ -8,15 +8,18 @@ export const config = {
   api: { bodyParser: true },
 };
 
-// ✅ CORS restricted to your Squarespace domain
+// ✅ CORS: allow Squarespace editor + www + non-www
 function setCors(req, res) {
-  const allowedOrigin = "https://www.vorrasi.com"; // replace if needed
+  const allowedOrigins = [
+    "https://www.vorrasi.com",
+    "https://vorrasi.com",
+    "https://mike-vorrasi.squarespace.com",
+  ];
   const origin = req.headers.origin;
 
-  if (origin === allowedOrigin) {
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
-
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -43,27 +46,21 @@ function sanitize(str) {
 }
 
 async function fetchNews(query) {
-  // Google News RSS search
   const url =
     "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" +
     encodeURIComponent(query + " (food OR restaurant OR travel)");
-
   try {
     const r = await fetch(url, { method: "GET" });
     const xml = await r.text();
-    // grab first <item>...</item>
     const item = firstMatch(/<item>([\s\S]*?)<\/item>/i, xml);
     if (!item) return null;
-
     const title = sanitize(firstMatch(/<title>([\s\S]*?)<\/title>/i, item));
     const link = sanitize(firstMatch(/<link>([\s\S]*?)<\/link>/i, item));
     const desc = sanitize(firstMatch(/<description>([\s\S]*?)<\/description>/i, item));
-    // media:content or enclosure image (may not exist)
     const media =
       firstMatch(/<media:content[^>]*url="([^"]+)"/i, item) ||
       firstMatch(/<enclosure[^>]*url="([^"]+)"/i, item) ||
       "";
-
     return {
       title: title || "",
       url: link || "",
@@ -80,16 +77,15 @@ async function fetchNews(query) {
 export default async function handler(req, res) {
   setCors(req, res);
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
 
   if (req.method === "GET") {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.3.0",
+      version: "0.3.1",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
+      cors: "whitelist",
     });
   }
 
@@ -106,13 +102,9 @@ export default async function handler(req, res) {
         .json({ ok: false, error: 'Missing JSON: { "place": "...", "region": "..." }' });
     }
     if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({
-        ok: false,
-        error: "OPENAI_API_KEY is not set",
-      });
+      return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
     }
 
-    // Ask the model for 3 JSON results only
     const userPrompt = `
 You are a neighborhood-matching engine.
 Given:
@@ -162,19 +154,12 @@ Rules:
       parsed = { results: [] };
     }
 
-    const results = Array.isArray(parsed?.results) ? parsed.results.slice(0, 3) : [];
-    if (results.length === 0) {
-      return res.status(200).json({
-        ok: true,
-        place,
-        region,
-        results: [],
-        note: "Model returned no results.",
-      });
+    const raw = Array.isArray(parsed?.results) ? parsed.results.slice(0, 3) : [];
+    if (raw.length === 0) {
+      return res.status(200).json({ ok: true, place, region, results: [], note: "No results." });
     }
 
-    // Normalize
-    const normalized = results.map((r, i) => ({
+    const normalized = raw.map((r, i) => ({
       rank: typeof r.rank === "number" ? r.rank : i + 1,
       match: r.match || r.neighborhood || "Unknown",
       city: r.city || "",
@@ -185,7 +170,6 @@ Rules:
       source: "openai",
     }));
 
-    // Attach 1 news item per match (best-effort; non-blocking failures)
     const withNews = await Promise.all(
       normalized.map(async (item) => {
         const q = `${item.match} ${item.city} ${item.region} food OR travel`;
@@ -203,10 +187,6 @@ Rules:
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      ok: false,
-      error: "Server error",
-      detail: String(err?.message || err),
-    });
+    return res.status(500).json({ ok: false, error: "Server error", detail: String(err?.message || err) });
   }
 }
