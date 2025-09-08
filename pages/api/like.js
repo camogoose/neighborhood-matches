@@ -8,8 +8,9 @@ export const config = {
   api: { bodyParser: true },
 };
 
+// ✅ CORS restricted to your Squarespace domain
 function setCors(req, res) {
-  const allowedOrigin = "https://www.vorrasi.com"; // 👈 your Squarespace domain
+  const allowedOrigin = "https://www.vorrasi.com"; // replace if needed
   const origin = req.headers.origin;
 
   if (origin === allowedOrigin) {
@@ -20,7 +21,6 @@ function setCors(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
-
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // set this in Vercel → Project → Settings → Environment Variables
@@ -110,7 +110,6 @@ Rules:
     try {
       parsed = JSON.parse(text);
     } catch (e) {
-      // last-resort: wrap results if model returned an array
       parsed = { results: Array.isArray(text) ? text : [] };
     }
 
