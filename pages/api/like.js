@@ -1,14 +1,11 @@
 // pages/api/like.js
-// v0.5.3 — Faster-first results (news lazy-loaded), results-only (no source profile),
-//           per-result landmarks (3), travel-only article with negative-word filter,
-//           updated CORS allowlist.
-// Runtime: Node.js (not Edge)
+// v0.5.4 — JSON mode + one retry if empty; results-only; landmarks; filtered travel news.
 
 import OpenAI from "openai";
 
 export const config = { runtime: "nodejs", api: { bodyParser: true } };
 
-// ---- CORS: allow your preview + live Squarespace domains ----
+// ---- CORS ----
 function setCors(req, res) {
   const allowedOrigins = [
     "https://www.vorrasi.com",
@@ -38,7 +35,7 @@ function clean(str) {
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
 
-// ---- travel/news filtering (domains + negative terms) ----
+// ---- travel/news filtering ----
 const NEGATIVE_KEYWORDS = [
   "murder","homicide","shooting","stabbing","assault","kidnapping",
   "rape","bomb","terror","massacre","deadly","death","fatal","police","arrest"
@@ -54,7 +51,6 @@ function hasNegative(text=""){
   return NEGATIVE_KEYWORDS.some(k => t.includes(k));
 }
 
-// ---- fetch travel news RSS (best-effort, filtered) ----
 async function fetchTravelNews(q) {
   const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q="
     + encodeURIComponent(q + " (travel OR tourism OR visit OR guide)");
@@ -83,6 +79,77 @@ async function fetchTravelNews(q) {
   }
 }
 
+// ---- OpenAI call helpers (JSON mode + retry) ----
+async function getMatchesJSON(place, region, attempt=1) {
+  const basePrompt = `
+You are a neighborhood-matching engine.
+
+INPUTS:
+- source place: "${place}"
+- find exactly 3 best matches within: "${region}" (treat this as a city, state, or country as appropriate)
+
+RETURN *ONLY* strict JSON (no prose):
+
+{
+  "results": [
+    {
+      "rank": 1,
+      "match": "Neighborhood",
+      "city": "City",
+      "region": "Region/State/Country",
+      "blurb": "1–2 concise sentences on why it matches",
+      "whatMakesItSpecial": ["3 to 5 short bullets"],
+      "landmarks": [
+        { "name": "spot", "why": "1 short sentence" },
+        { "name": "spot", "why": "1 short sentence" },
+        { "name": "spot", "why": "1 short sentence" }
+      ],
+      "tags": ["3–6 tags"],
+      "score": 0.0
+    }
+  ]
+}`;
+
+  const fallbackPrompt = `
+Return ONLY strict JSON for 3 matches inside "${region}" that feel like "${place}".
+Keep fields minimal and factual. Same schema as before.`;
+
+  const prompt = attempt === 1 ? basePrompt : fallbackPrompt;
+
+  const resp = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    temperature: 0.6,
+    max_tokens: 700,
+    response_format: { type: "json_object" }, // force JSON
+    messages: [
+      { role: "system", content: "Return strictly valid JSON for a neighborhood-matching API. Never include extra text." },
+      { role: "user", content: prompt },
+    ],
+  });
+
+  const text = (resp.choices?.[0]?.message?.content || "{}").trim();
+  try { return JSON.parse(text); } catch { return {}; }
+}
+
+function normalizeResults(parsed, place, region) {
+  const base = Array.isArray(parsed?.results) ? parsed.results.slice(0, 3) : [];
+  return base.map((r, i) => ({
+    rank: typeof r.rank === "number" ? r.rank : i + 1,
+    match: r.match || r.neighborhood || "Unknown",
+    city: r.city || "",
+    region: r.region || String(region),
+    blurb: r.blurb || "",
+    whatMakesItSpecial: Array.isArray(r?.whatMakesItSpecial) ? r.whatMakesItSpecial.slice(0, 5) : [],
+    landmarks: Array.isArray(r?.landmarks) ? r.landmarks.slice(0, 3).map(l => ({
+      name: String(l?.name || "").slice(0, 80),
+      why: String(l?.why || "").slice(0, 160)
+    })) : [],
+    tags: Array.isArray(r.tags) ? r.tags.slice(0, 6) : [],
+    score: typeof r.score === "number" ? r.score : 0.75,
+    source: "openai",
+  }));
+}
+
 export default async function handler(req, res) {
   setCors(req, res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -91,7 +158,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.5.3",
+      version: "0.5.4",
       sections: ["resultsOnly"],
       news_filter: "travel-only (negatives excluded)",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key"
@@ -106,7 +173,7 @@ export default async function handler(req, res) {
   try {
     const { place, region, includeNews, newsOnly, items } = req.body || {};
 
-    // News-only path (lazy load from client)
+    // News-only path
     if (newsOnly) {
       const list = Array.isArray(items) ? items.slice(0, 3) : [];
       const news = await Promise.all(list.map(async (i) => {
@@ -123,73 +190,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
     }
 
-    const prompt = `
-You are a neighborhood-matching engine.
+    // Try once (JSON mode), then retry with simpler prompt if empty
+    let parsed = await getMatchesJSON(place, region, 1);
+    let normalized = normalizeResults(parsed, place, region);
 
-INPUTS:
-- source place: "${place}"
-- find 3 best matches within: "${region}"
-
-OUTPUT: strictly valid JSON with exactly 3 items in "results".
-Each result MUST include:
-  - "rank": 1..3
-  - "match": neighborhood or district name (destination)
-  - "city": city name
-  - "region": state/region/country
-  - "blurb": 1–2 concise sentences on why it matches
-  - "whatMakesItSpecial": 3–5 short bullets
-  - "landmarks": exactly 3 items: [{ "name": "...", "why": "1 short sentence" }]
-  - "tags": 3–6 short tags
-  - "score": 0.0–1.0
-
-Return ONLY:
-{ "results": [ ... ] }`;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.6,
-      max_tokens: 650,
-      messages: [
-        { role: "system", content: "Return strictly valid JSON for a neighborhood-matching API." },
-        { role: "user", content: prompt }
-      ]
-    });
-
-    let text = completion.choices?.[0]?.message?.content || "{}";
-    text = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "");
-    let parsed; try { parsed = JSON.parse(text); } catch { parsed = {}; }
-
-    const base = Array.isArray(parsed?.results) ? parsed.results.slice(0, 3) : [];
-    const normalized = base.map((r, i) => ({
-      rank: typeof r.rank === "number" ? r.rank : i + 1,
-      match: r.match || r.neighborhood || "Unknown",
-      city: r.city || "",
-      region: r.region || String(region),
-      blurb: r.blurb || "",
-      whatMakesItSpecial: Array.isArray(r?.whatMakesItSpecial) ? r.whatMakesItSpecial.slice(0, 5) : [],
-      landmarks: Array.isArray(r?.landmarks) ? r.landmarks.slice(0, 3).map(l => ({
-        name: String(l?.name || "").slice(0, 80),
-        why: String(l?.why || "").slice(0, 160)
-      })) : [],
-      tags: Array.isArray(r.tags) ? r.tags.slice(0, 6) : [],
-      score: typeof r.score === "number" ? r.score : 0.75,
-      source: "openai"
-    }));
-
-    if (includeNews) {
-      const withNews = await Promise.all(normalized.map(async (item) => {
-        const nq = `${item.match} ${item.city} ${item.region}`;
-        const news = await fetchTravelNews(nq);
-        return { ...item, news: news || null };
-      }));
-      return res.status(200).json({ ok: true, place, region, results: withNews, version: "0.5.3" });
-    }
-
-    return res.status(200).json({ ok: true, place, region, results: normalized, version: "0.5.3" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ ok: false, error: "Server error", detail: String(err?.message || err) });
-  }
-} // end handler
-
-// EOF v0.5.3
+    if (!normalized.length) {
+      parsed = await getMatchesJSON(place, region, 2);
+      normali
