@@ -1,5 +1,5 @@
 // pages/api/like.js
-// v0.4.2 — Source-place profile (traits/landmarks/size/vibe) + 3 matches + travel-only news
+// v0.4.3 — Adds "whatMakesItSpecial" bullets + travel-only news filter + negative keyword exclusion
 // Runtime: Node.js (not Edge)
 
 import OpenAI from "openai";
@@ -9,26 +9,23 @@ export const config = { runtime: "nodejs", api: { bodyParser: true } };
 // ---- CORS: allow your preview + live Squarespace domains (edit as needed) ----
 function setCors(req, res) {
   const allowedOrigins = [
-    // Your personal site (optional — keep if you still embed there)
+    // Your personal site (optional)
     "https://www.vorrasi.com",
     "https://vorrasi.com",
 
-    // Squarespace preview domain for THIS project (keep while testing)
+    // Squarespace preview domain for THIS project
     "https://contrabass-dog-6kj.squarespace.com",
 
     // Your live custom domain (both www + bare)
     "https://thisplaceisjustlikethatplace.com",
     "https://www.thisplaceisjustlikethatplace.com",
 
-    // Squarespace editor login domain (sometimes used during previews)
+    // Squarespace editor login domain
     "https://mike-vorrasi.squarespace.com"
   ];
 
-  // Optional: allow any *.squarespace.com (uncomment if you prefer broader testing)
-  // const SQS_REGEX = /^https:\/\/[a-z0-9-]+\.squarespace\.com$/i;
-
   const origin = req.headers.origin;
-  if (origin && (allowedOrigins.includes(origin) /* || SQS_REGEX.test(origin) */)) {
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Vary", "Origin");
@@ -46,6 +43,25 @@ function clean(str) {
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
+
+// ---- travel/news filtering (domains + negative terms) ----
+const NEGATIVE_KEYWORDS = [
+  "murder","homicide","shooting","stabbing","assault","kidnapping",
+  "rape","bomb","terror","massacre","deadly","death","fatal"
+];
+
+function domainOf(u=""){ try { return new URL(u).host.replace(/^www\./,""); } catch { return ""; } }
+function isTravelDomain(u=""){
+  const h = domainOf(u);
+  if (!h) return false;
+  return /lonelyplanet|cntraveler|afar|atlasobscura|timeout|thrillist|travelandleisure|nationalgeographic|guardian|nytimes|bbc|washingtonpost|eater|curbed|visit|tourism|city|municipality|gov/i.test(h);
+}
+function hasNegative(text=""){
+  const t = text.toLowerCase();
+  return NEGATIVE_KEYWORDS.some(k => t.includes(k));
+}
+
+// ---- fetch travel news RSS ----
 async function fetchTravelNews(q) {
   const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q="
     + encodeURIComponent(q + " (travel OR tourism OR visit OR guide)");
@@ -59,6 +75,12 @@ async function fetchTravelNews(q) {
     const desc  = clean(pick(item, /<description>([\s\S]*?)<\/description>/i));
     const img   = pick(item, /<media:content[^>]*url="([^"]+)"/i)
                || pick(item, /<enclosure[^>]*url="([^"]+)"/i) || "";
+
+    // filter: travel-ish domains only
+    if (!isTravelDomain(link)) return null;
+    // filter: exclude negative news
+    if (hasNegative(title + " " + desc)) return null;
+
     return {
       title: title || "",
       url: link || "",
@@ -78,7 +100,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.4.2",
+      version: "0.4.3",
       sections: ["sourceProfile", "results"],
       news_filter: "travel-only",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
@@ -128,6 +150,7 @@ Rules:
 - Prefer neighborhoods (not entire cities) when possible.
 - Factor scale similarity: population/density/foot-traffic if known; if not, infer typical scale.
 - Avoid duplicates; be accurate.
+- Keep language concise and friendly for cards.
 
 Return exactly 3 candidates:
 {
@@ -138,6 +161,7 @@ Return exactly 3 candidates:
       "city": "City",
       "region": "Region/State/Country",
       "blurb": "Why this matches ${place} in 1–2 sentences",
+      "whatMakesItSpecial": ["3–5 short bullets on vibe, architecture, street life, dining, arts"],
       "tags": ["1-3 words","3-6 tags"],
       "score": 0.0
     }
@@ -188,12 +212,13 @@ Output ONLY valid JSON with both "sourceProfile" and "results".
       city: r.city || "",
       region: r.region || String(region),
       blurb: r.blurb || `Feels similar to ${place}.`,
+      whatMakesItSpecial: Array.isArray(r?.whatMakesItSpecial) ? r.whatMakesItSpecial.slice(0, 5) : [],
       tags: Array.isArray(r.tags) ? r.tags.slice(0, 6) : [],
       score: typeof r.score === "number" ? r.score : 0.75,
       source: "openai",
     }));
 
-    // Attach travel news for each match (best-effort)
+    // Attach travel news for each match (best-effort, filtered)
     const withNews = await Promise.all(normalized.map(async (item) => {
       const nq = `${item.match} ${item.city} ${item.region}`;
       const news = await fetchTravelNews(nq);
@@ -205,7 +230,7 @@ Output ONLY valid JSON with both "sourceProfile" and "results".
       place, region,
       sourceProfile,
       results: withNews,
-      version: "0.4.2"
+      version: "0.4.3"
     });
 
   } catch (err) {
