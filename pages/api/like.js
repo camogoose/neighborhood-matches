@@ -201,4 +201,6 @@ Return ONLY:
 
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ ok: false,
+    return res.status(500).json({ ok: false, error: "Server error", detail: String(err?.message || err) });
+  }
+}
