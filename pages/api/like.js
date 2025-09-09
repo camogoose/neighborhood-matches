@@ -1,22 +1,34 @@
 // pages/api/like.js
-// v0.4.1 — Source-place profile (traits/landmarks/size/vibe) + 3 matches + travel-only news
+// v0.4.2 — Source-place profile (traits/landmarks/size/vibe) + 3 matches + travel-only news
 // Runtime: Node.js (not Edge)
 
 import OpenAI from "openai";
 
 export const config = { runtime: "nodejs", api: { bodyParser: true } };
 
-// ---- CORS: allow Squarespace editor + your domains (edit this list if you add more) ----
+// ---- CORS: allow your preview + live Squarespace domains (edit as needed) ----
 function setCors(req, res) {
   const allowedOrigins = [
+    // Your personal site (optional — keep if you still embed there)
     "https://www.vorrasi.com",
     "https://vorrasi.com",
-    "https://mike-vorrasi.squarespace.com",
+
+    // Squarespace preview domain for THIS project (keep while testing)
+    "https://contrabass-dog-6kj.squarespace.com",
+
+    // Your live custom domain (both www + bare)
     "https://thisplaceisjustlikethatplace.com",
     "https://www.thisplaceisjustlikethatplace.com",
+
+    // Squarespace editor login domain (sometimes used during previews)
+    "https://mike-vorrasi.squarespace.com"
   ];
+
+  // Optional: allow any *.squarespace.com (uncomment if you prefer broader testing)
+  // const SQS_REGEX = /^https:\/\/[a-z0-9-]+\.squarespace\.com$/i;
+
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && (allowedOrigins.includes(origin) /* || SQS_REGEX.test(origin) */)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Vary", "Origin");
@@ -38,19 +50,24 @@ async function fetchTravelNews(q) {
   const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q="
     + encodeURIComponent(q + " (travel OR tourism OR visit OR guide)");
   try {
-    const r = await fetch(url); const xml = await r.text();
-    const item = pick(xml, /<item>([\s\S]*?)<\/item>/i); if (!item) return null;
+    const r = await fetch(url);
+    const xml = await r.text();
+    const item = pick(xml, /<item>([\s\S]*?)<\/item>/i);
+    if (!item) return null;
     const title = clean(pick(item, /<title>([\s\S]*?)<\/title>/i));
     const link  = clean(pick(item, /<link>([\s\S]*?)<\/link>/i));
     const desc  = clean(pick(item, /<description>([\s\S]*?)<\/description>/i));
-    const img   = pick(item, /<media:content[^>]*url="([^"]+)"/i) || pick(item, /<enclosure[^>]*url="([^"]+)"/i) || "";
+    const img   = pick(item, /<media:content[^>]*url="([^"]+)"/i)
+               || pick(item, /<enclosure[^>]*url="([^"]+)"/i) || "";
     return {
       title: title || "",
       url: link || "",
       image: img || "",
       snippet: (desc || "").replace(/<[^>]+>/g, "").slice(0, 180) + ((desc && desc.length > 180) ? "…" : "")
     };
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
@@ -61,7 +78,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.4.1",
+      version: "0.4.2",
       sections: ["sourceProfile", "results"],
       news_filter: "travel-only",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
@@ -188,7 +205,7 @@ Output ONLY valid JSON with both "sourceProfile" and "results".
       place, region,
       sourceProfile,
       results: withNews,
-      version: "0.4.1"
+      version: "0.4.2"
     });
 
   } catch (err) {
