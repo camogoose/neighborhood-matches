@@ -1,5 +1,5 @@
 // pages/api/like.js
-// v0.5.0 — Faster-first results (news lazy-loaded), results-only (no source profile),
+// v0.5.1 — Faster-first results (news lazy-loaded), results-only (no source profile),
 //           per-result landmarks (3), travel-only article with negative-word filter,
 //           updated CORS allowlist.
 // Runtime: Node.js (not Edge)
@@ -8,24 +8,16 @@ import OpenAI from "openai";
 
 export const config = { runtime: "nodejs", api: { bodyParser: true } };
 
-// ---- CORS: allow your preview + live Squarespace domains (edit as needed) ----
+// ---- CORS: allow your preview + live Squarespace domains ----
 function setCors(req, res) {
   const allowedOrigins = [
-    // Your personal site (optional — keep if you still embed there)
     "https://www.vorrasi.com",
     "https://vorrasi.com",
-
-    // Squarespace preview domain for THIS project (keep while testing)
     "https://contrabass-dog-6klj.squarespace.com",
-
-    // Your live custom domain (both www + bare)
     "https://thisplaceisjustlikethatplace.com",
     "https://www.thisplaceisjustlikethatplace.com",
-
-    // Squarespace editor login domain (sometimes used during previews)
-    "https://mike-vorrasi.squarespace.com"
+    "https://mike-vorrasi.squarespace.com",
   ];
-
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
@@ -77,8 +69,8 @@ async function fetchTravelNews(q) {
     const img   = pick(item, /<media:content[^>]*url="([^"]+)"/i)
                || pick(item, /<enclosure[^>]*url="([^"]+)"/i) || "";
 
-    if (!isTravelDomain(link)) return null;          // travel-ish publishers only
-    if (hasNegative(title + " " + desc)) return null; // exclude negative terms
+    if (!isTravelDomain(link)) return null;           // travel-ish publishers only
+    if (hasNegative((title||"") + " " + (desc||""))) return null; // exclude negatives
 
     return {
       title: title || "",
@@ -99,7 +91,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.5.0",
+      version: "0.5.1",
       sections: ["resultsOnly"],
       news_filter: "travel-only (negatives excluded)",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
@@ -114,7 +106,7 @@ export default async function handler(req, res) {
   try {
     const { place, region, includeNews, newsOnly, items } = req.body || {};
 
-    // Fast news-only path: fetch news for items already rendered on the client
+    // News-only path (lazy load from client)
     if (newsOnly) {
       const list = Array.isArray(items) ? items.slice(0, 3) : [];
       const news = await Promise.all(list.map(async (i) => {
@@ -157,7 +149,7 @@ Return ONLY:
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.6,
-      max_tokens: 650, // keep bounded for speed
+      max_tokens: 650, // bounded for speed
       messages: [
         { role: "system", content: "Return strictly valid JSON for a neighborhood-matching API." },
         { role: "user", content: prompt },
@@ -175,7 +167,7 @@ Return ONLY:
       match: r.match || r.neighborhood || "Unknown",
       city: r.city || "",
       region: r.region || String(region),
-      blurb: r.blurb || `Feels similar to ${place}.`,
+      blurb: r.blurb || "",
       whatMakesItSpecial: Array.isArray(r?.whatMakesItSpecial) ? r.whatMakesItSpecial.slice(0, 5) : [],
       landmarks: Array.isArray(r?.landmarks) ? r.landmarks.slice(0, 3).map(l => ({
         name: String(l?.name || "").slice(0, 80),
@@ -193,14 +185,16 @@ Return ONLY:
         const news = await fetchTravelNews(nq);
         return { ...item, news: news || null };
       }));
-      return res.status(200).json({ ok: true, place, region, results: withNews, version: "0.5.0" });
+      return res.status(200).json({ ok: true, place, region, results: withNews, version: "0.5.1" });
     }
 
     // FAST path: return matches only
-    return res.status(200).json({ ok: true, place, region, results: normalized, version: "0.5.0" });
+    return res.status(200).json({ ok: true, place, region, results: normalized, version: "0.5.1" });
 
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, error: "Server error", detail: String(err?.message || err) });
   }
-}
+} // end handler
+
+// EOF v0.5.1
