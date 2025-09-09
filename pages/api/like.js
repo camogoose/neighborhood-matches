@@ -1,6 +1,7 @@
 // pages/api/like.js
-// v0.4.4 — Adds "whatMakesItSpecial" bullets + travel-only news filter + negative keyword exclusion
-//          Updated CORS allowlist for preview + live domains
+// v0.5.0 — Faster-first results (news lazy-loaded), results-only (no source profile),
+//           per-result landmarks (3), travel-only article with negative-word filter,
+//           updated CORS allowlist.
 // Runtime: Node.js (not Edge)
 
 import OpenAI from "openai";
@@ -25,11 +26,8 @@ function setCors(req, res) {
     "https://mike-vorrasi.squarespace.com"
   ];
 
-  // Optional: allow any *.squarespace.com while testing (looser). Remove before launch.
-  // const SQS_REGEX = /^https:\/\/[a-z0-9-]+\.squarespace\.com$/i;
-
   const origin = req.headers.origin;
-  if (origin && (allowedOrigins.includes(origin) /* || SQS_REGEX.test(origin) */)) {
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Vary", "Origin");
@@ -51,9 +49,8 @@ function clean(str) {
 // ---- travel/news filtering (domains + negative terms) ----
 const NEGATIVE_KEYWORDS = [
   "murder","homicide","shooting","stabbing","assault","kidnapping",
-  "rape","bomb","terror","massacre","deadly","death","fatal"
+  "rape","bomb","terror","massacre","deadly","death","fatal","police","arrest"
 ];
-
 function domainOf(u=""){ try { return new URL(u).host.replace(/^www\./,""); } catch { return ""; } }
 function isTravelDomain(u=""){
   const h = domainOf(u);
@@ -65,7 +62,7 @@ function hasNegative(text=""){
   return NEGATIVE_KEYWORDS.some(k => t.includes(k));
 }
 
-// ---- fetch travel news RSS ----
+// ---- fetch travel news RSS (best-effort, filtered) ----
 async function fetchTravelNews(q) {
   const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q="
     + encodeURIComponent(q + " (travel OR tourism OR visit OR guide)");
@@ -80,10 +77,8 @@ async function fetchTravelNews(q) {
     const img   = pick(item, /<media:content[^>]*url="([^"]+)"/i)
                || pick(item, /<enclosure[^>]*url="([^"]+)"/i) || "";
 
-    // filter: travel-ish domains only
-    if (!isTravelDomain(link)) return null;
-    // filter: exclude negative news
-    if (hasNegative(title + " " + desc)) return null;
+    if (!isTravelDomain(link)) return null;          // travel-ish publishers only
+    if (hasNegative(title + " " + desc)) return null; // exclude negative terms
 
     return {
       title: title || "",
@@ -104,9 +99,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.4.4",
-      sections: ["sourceProfile", "results"],
-      news_filter: "travel-only",
+      version: "0.5.0",
+      sections: ["resultsOnly"],
+      news_filter: "travel-only (negatives excluded)",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
     });
   }
@@ -117,7 +112,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { place, region } = req.body || {};
+    const { place, region, includeNews, newsOnly, items } = req.body || {};
+
+    // Fast news-only path: fetch news for items already rendered on the client
+    if (newsOnly) {
+      const list = Array.isArray(items) ? items.slice(0, 3) : [];
+      const news = await Promise.all(list.map(async (i) => {
+        const q = [i.match, i.city, i.region].filter(Boolean).join(" ");
+        return await fetchTravelNews(q);
+      }));
+      return res.status(200).json({ ok: true, news });
+    }
+
     if (!place || !region) {
       return res.status(400).json({ ok: false, error: 'Missing JSON: { "place": "...", "region": "..." }' });
     }
@@ -125,88 +131,42 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
     }
 
-    // Prompt: build a concise profile of the source place + 3 best matches inside region
+    // Slim prompt → faster model response, results only
     const prompt = `
 You are a neighborhood-matching engine.
 
-Task A — PROFILE the source place (concise, factual, no hype):
-- place: "${place}"
-Return:
-{
-  "sourceProfile": {
-    "summary": "1 sentence overview of ${place} vibe.",
-    "traits": [
-      { "title": "2–4 words", "detail": "1–2 sentences specific to ${place}" },
-      { "title": "2–4 words", "detail": "1–2 sentences specific to ${place}" },
-      { "title": "2–4 words", "detail": "1–2 sentences specific to ${place}" }
-    ],
-    "landmarks": [
-      { "name": "spot name", "why": "why it matters in 1 short sentence" }
-    ],
-    "size": { "populationApprox": "e.g., ~100k", "densityNote": "short note (optional)" },
-    "vibeTags": ["short","comma-free","tags","3-6"]
-  }
-}
+INPUTS:
+- source place: "${place}"
+- find 3 best matches within: "${region}"
 
-Task B — MATCH inside scope (consider scale + vibe):
-- scope/region: "${region}"
-Rules:
-- Prefer neighborhoods (not entire cities) when possible.
-- Factor scale similarity: population/density/foot-traffic if known; if not, infer typical scale.
-- Avoid duplicates; be accurate.
-- Keep language concise and friendly for cards.
+OUTPUT: strictly valid JSON with exactly 3 items in "results".
+Each result MUST include:
+  - "rank": 1..3
+  - "match": neighborhood or district name (destination)
+  - "city": city name
+  - "region": state/region/country
+  - "blurb": 1–2 concise sentences on why it matches
+  - "whatMakesItSpecial": 3–5 short bullets
+  - "landmarks": exactly 3 items: [{ "name": "...", "why": "1 short sentence" }]
+  - "tags": 3–6 short tags
+  - "score": 0.0–1.0
 
-Return exactly 3 candidates:
-{
-  "results": [
-    {
-      "rank": 1,
-      "match": "Neighborhood",
-      "city": "City",
-      "region": "Region/State/Country",
-      "blurb": "Why this matches ${place} in 1–2 sentences",
-      "whatMakesItSpecial": ["3–5 short bullets on vibe, architecture, street life, dining, arts"],
-      "tags": ["1-3 words","3-6 tags"],
-      "score": 0.0
-    }
-  ]
-}
-
-Output ONLY valid JSON with both "sourceProfile" and "results".
-`;
+Return ONLY:
+{ "results": [ ... ] }`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.6,
+      max_tokens: 650, // keep bounded for speed
       messages: [
-        { role: "system", content: "You return strictly valid JSON for a neighborhood-matching API." },
+        { role: "system", content: "Return strictly valid JSON for a neighborhood-matching API." },
         { role: "user", content: prompt },
       ],
     });
 
     let text = completion.choices?.[0]?.message?.content || "{}";
     text = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "");
-    let parsed;
-    try { parsed = JSON.parse(text); } catch { parsed = {}; }
-
-    // Normalize sourceProfile
-    const sp = parsed?.sourceProfile || {};
-    const sourceProfile = {
-      summary: sp.summary || `What makes ${place} special.`,
-      traits: Array.isArray(sp.traits) ? sp.traits.slice(0, 3).map(t => ({
-        title: String(t?.title || "").slice(0, 40) || "Trait",
-        detail: String(t?.detail || "").slice(0, 300) || ""
-      })) : [],
-      landmarks: Array.isArray(sp.landmarks) ? sp.landmarks.slice(0, 5).map(l => ({
-        name: String(l?.name || "").slice(0, 80),
-        why: String(l?.why || "").slice(0, 160)
-      })) : [],
-      size: {
-        populationApprox: sp?.size?.populationApprox || "",
-        densityNote: sp?.size?.densityNote || ""
-      },
-      vibeTags: Array.isArray(sp.vibeTags) ? sp.vibeTags.slice(0, 6) : []
-    };
+    let parsed; try { parsed = JSON.parse(text); } catch { parsed = {}; }
 
     // Normalize matches
     const base = Array.isArray(parsed?.results) ? parsed.results.slice(0, 3) : [];
@@ -217,28 +177,28 @@ Output ONLY valid JSON with both "sourceProfile" and "results".
       region: r.region || String(region),
       blurb: r.blurb || `Feels similar to ${place}.`,
       whatMakesItSpecial: Array.isArray(r?.whatMakesItSpecial) ? r.whatMakesItSpecial.slice(0, 5) : [],
+      landmarks: Array.isArray(r?.landmarks) ? r.landmarks.slice(0, 3).map(l => ({
+        name: String(l?.name || "").slice(0, 80),
+        why: String(l?.why || "").slice(0, 160)
+      })) : [],
       tags: Array.isArray(r.tags) ? r.tags.slice(0, 6) : [],
       score: typeof r.score === "number" ? r.score : 0.75,
       source: "openai",
     }));
 
-    // Attach travel news for each match (best-effort, filtered)
-    const withNews = await Promise.all(normalized.map(async (item) => {
-      const nq = `${item.match} ${item.city} ${item.region}`;
-      const news = await fetchTravelNews(nq);
-      return { ...item, news: news || null };
-    }));
+    // Optionally include news here (slower) — default is FAST (no news)
+    if (includeNews) {
+      const withNews = await Promise.all(normalized.map(async (item) => {
+        const nq = `${item.match} ${item.city} ${item.region}`;
+        const news = await fetchTravelNews(nq);
+        return { ...item, news: news || null };
+      }));
+      return res.status(200).json({ ok: true, place, region, results: withNews, version: "0.5.0" });
+    }
 
-    return res.status(200).json({
-      ok: true,
-      place, region,
-      sourceProfile,
-      results: withNews,
-      version: "0.4.4"
-    });
+    // FAST path: return matches only
+    return res.status(200).json({ ok: true, place, region, results: normalized, version: "0.5.0" });
 
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ ok: false, error: "Server error", detail: String(err?.message || err) });
-  }
-}
+    return res.status(500).json({ ok: false,
