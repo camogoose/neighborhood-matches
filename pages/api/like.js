@@ -1,21 +1,21 @@
 // pages/api/like.js
-// v0.6.0 — images via Wikipedia; broader travel/food/hotel news; JSON mode + retry.
+// v0.7.0 — Panel-ready results, strong Wikipedia image fallback, hotel-first articles.
 // Runtime: Node.js (Next.js API Route)
 
 import OpenAI from "openai";
 
 export const config = { runtime: "nodejs", api: { bodyParser: true } };
 
-// ---- CORS: allow Squarespace preview + your domains ----
+// ---- CORS ----
 function setCors(req, res) {
   const allowedOrigins = [
     "https://www.vorrasi.com",
     "https://vorrasi.com",
-    "https://contrabass-dog-6klj.squarespace.com", // preview
-    "https://contrabass-dog-6kj.squarespace.com",  // (older preview just in case)
+    "https://contrabass-dog-6klj.squarespace.com", // your preview
+    "https://contrabass-dog-6kj.squarespace.com",  // (older preview kept)
     "https://thisplaceisjustlikethatplace.com",
     "https://www.thisplaceisjustlikethatplace.com",
-    "https://mike-vorrasi.squarespace.com"
+    "https://mike-vorrasi.squarespace.com",
   ];
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
@@ -28,7 +28,7 @@ function setCors(req, res) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ---- tiny helpers ----
+// ---- helpers ----
 function pick(s, re) { const m = re.exec(s); return m ? m[1].trim() : ""; }
 function clean(str) {
   return String(str || "")
@@ -38,104 +38,113 @@ function clean(str) {
 }
 function domainOf(u=""){ try { return new URL(u).host.replace(/^www\./,""); } catch { return ""; } }
 
-// ---- Wikipedia image lookup (best-effort) ----
-async function fetchPlaceImage(q) {
+// ---- Wikipedia image lookup (multi-pass, HTTPS, 640px thumbs) ----
+async function fetchPlaceImageFromTitle(title){
+  // pass A: pageimages for explicit title
   try {
-    // Search title
-    const s = await fetch(
-      "https://en.wikipedia.org/w/api.php?action=opensearch&origin=*&format=json&limit=1&namespace=0&search=" + encodeURIComponent(q)
-    );
-    const arr = await s.json();
-    const title = arr?.[1]?.[0];
-    if (!title) return null;
-
-    // Summary with thumbnail
+    const u = "https://en.wikipedia.org/w/api.php?origin=*&format=json&action=query&prop=pageimages&piprop=thumbnail&pithumbsize=640&titles=" + encodeURIComponent(title);
+    const r = await fetch(u); const j = await r.json();
+    const pages = j?.query?.pages || {};
+    for (const k in pages) {
+      const t = pages[k]?.thumbnail?.source;
+      if (t) return { url: t, attribution: "https://en.wikipedia.org/wiki/" + encodeURIComponent(title) };
+    }
+  } catch {}
+  // pass B: REST summary may still have a thumb/original
+  try {
     const r = await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title));
     const j = await r.json();
     const url = j?.thumbnail?.source || j?.originalimage?.source;
-    if (!url) return null;
-
-    return {
-      url,
-      attribution: j?.content_urls?.desktop?.page || ("https://en.wikipedia.org/wiki/" + encodeURIComponent(title))
-    };
-  } catch { return null; }
+    if (url) return { url, attribution: j?.content_urls?.desktop?.page || ("https://en.wikipedia.org/wiki/" + encodeURIComponent(title)) };
+  } catch {}
+  return null;
 }
 
-// ---- travel/news filtering ----
-const NEGATIVE_KEYWORDS = [
-  "murder","homicide","shooting","stabbing","assault","kidnapping",
-  "rape","bomb","terror","massacre","deadly","death","fatal","police","arrest"
-];
-
-function isPreferredDomain(u=""){
-  const h = domainOf(u);
-  if (!h) return false;
-  // Travel + city tourism + food + hotels
-  return /lonelyplanet|cntraveler|travelandleisure|afar|timeout|atlasobscura|frommers|fodors|roughguides|nationalgeographic|guardian|nytimes|bbc|washingtonpost|eater|theinfatuation|michelinguide|bonappetit|thrillist|cond[ée]nast|visit|tourism|city|municipality|gov|hotel|hotels|forbestravelguide/i.test(h);
-}
-
-function hasNegative(text=""){
-  const t = text.toLowerCase();
-  return NEGATIVE_KEYWORDS.some(k => t.includes(k));
-}
-
-// ---- improved travel/food/hotel news fetch ----
-async function fetchTravelNews(q) {
-  const make = async (query) => {
-    const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" + encodeURIComponent(query);
-    const r = await fetch(url);
-    const xml = await r.text();
-
-    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map(m => m[1]).slice(0, 12);
-    let fallback = null;
-
-    for (const item of items) {
-      const title = clean(pick(item, /<title>([\s\S]*?)<\/title>/i));
-      const link  = clean(pick(item, /<link>([\s\S]*?)<\/link>/i));
-      const desc  = clean(pick(item, /<description>([\s\S]*?)<\/description>/i));
-      const img   = pick(item, /<media:content[^>]*url="([^"]+)"/i)
-                 || pick(item, /<enclosure[^>]*url="([^"]+)"/i) || "";
-
-      if (!link) continue;
-      if (hasNegative((title||"") + " " + (desc||""))) continue;
-
-      const news = {
-        title: title || "",
-        url: link,
-        image: img || "",
-        snippet: (desc || "").replace(/<[^>]+>/g, "").slice(0, 180) + ((desc && desc.length > 180) ? "…" : "")
-      };
-
-      if (isPreferredDomain(link)) return news;   // prefer travel/food/hotel domains
-      if (!fallback) fallback = news;             // safe general fallback
+async function fetchPlaceImage(query){
+  try {
+    // 1) Find best title via opensearch
+    const s = await fetch("https://en.wikipedia.org/w/api.php?origin=*&format=json&action=opensearch&limit=1&namespace=0&search=" + encodeURIComponent(query));
+    const arr = await s.json();
+    const title1 = arr?.[1]?.[0];
+    if (title1) {
+      const a = await fetchPlaceImageFromTitle(title1);
+      if (a) return a;
     }
-    return fallback;
+    // 2) Generator search (top few hits), first with images wins
+    const g = await fetch("https://en.wikipedia.org/w/api.php?origin=*&format=json&action=query&generator=search&gsrsearch=" + encodeURIComponent(query) + "&gsrlimit=5&prop=pageimages&piprop=thumbnail&pithumbsize=640");
+    const j2 = await g.json();
+    const pages = j2?.query?.pages || {};
+    const sorted = Object.values(pages).sort((a,b)=>(b.index||0)-(a.index||0));
+    for (const p of sorted) {
+      const t = p?.thumbnail?.source;
+      if (t) return { url: t, attribution: "https://en.wikipedia.org/wiki/" + encodeURIComponent(p.title) };
+    }
+  } catch {}
+  return null;
+}
+
+// ---- news filtering (hotel first) ----
+const NEGATIVE = ["murder","homicide","shooting","stabbing","assault","kidnapping","rape","bomb","terror","massacre","deadly","death","fatal","police","arrest"];
+function hasNeg(s=""){ const t=(s||"").toLowerCase(); return NEGATIVE.some(k=>t.includes(k)); }
+
+function scoreArticle(title="", url=""){
+  const t = (title||"").toLowerCase();
+  const h = domainOf(url).toLowerCase();
+
+  // Very strong hotel intent
+  let score = 0;
+  if (/\b(hotel|hotels|where to stay|stay|airbnb|bnb|guesthouse|accommodation)\b/i.test(t)) score += 6;
+
+  // Domain boosts (stay > travel > food)
+  if (/forbestravelguide|cntraveler|travelandleisure|timeout|lonelyplanet|afar/.test(h)) score += 3;
+  if (/booking|hotels\.com|marriott|hyatt|ihg|accor|airbnb|vrbo/.test(h)) score += 2;        // OK if it has editorial roundups
+  if (/eater|theinfatuation|michelinguide|bonappetit|thrillist|atlasobscura/.test(h)) score += 1;
+
+  // Food-only phrases lower than hotel if both exist
+  if (/\b(best restaurants|where to eat|food guide|dining)\b/i.test(t)) score += 1;
+
+  return score;
+}
+
+async function fetchTravelNews(q) {
+  const run = async (query) => {
+    const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" + encodeURIComponent(query);
+    const r = await fetch(url); const xml = await r.text();
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map(m => m[1]).slice(0, 14);
+    const good = [];
+    for (const it of items) {
+      const title = clean(pick(it, /<title>([\s\S]*?)<\/title>/i));
+      const link  = clean(pick(it, /<link>([\s\S]*?)<\/link>/i));
+      const desc  = clean(pick(it, /<description>([\s\S]*?)<\/description>/i));
+      const img   = pick(it, /<media:content[^>]*url="([^"]+)"/i) || pick(it, /<enclosure[^>]*url="([^"]+)"/i) || "";
+      if (!link) continue;
+      if (hasNeg(`${title} ${desc}`)) continue;
+      good.push({
+        title, url: link, image: img,
+        snippet: (desc || "").replace(/<[^>]+>/g, "").slice(0, 180) + ((desc && desc.length > 180) ? "…" : ""),
+        score: scoreArticle(title, link)
+      });
+    }
+    // Pick best by score, fallback to first safe
+    good.sort((a,b)=>b.score-a.score);
+    return good[0] || null;
   };
 
   try {
-    // Pass 1: broad travel/food/hotel intent
-    const primary = await make(q + " (travel OR tourism OR visit OR guide OR restaurant OR dining OR food OR cafe OR bar OR hotel OR hotels OR \"where to eat\" OR \"where to stay\" OR \"best restaurants\" OR \"hotel review\")");
-    if (primary) return primary;
+    // Pass 1: hotel / where-to-stay preference
+    const hotelFirst = await run(q + ' (hotel OR "where to stay" OR stay OR airbnb OR accommodation)');
+    if (hotelFirst) return hotelFirst;
 
-    // Pass 2: target popular sites directly
-    const targeted = await make(q + " (site:timeout.com OR site:lonelyplanet.com OR site:cntraveler.com OR site:travelandleisure.com OR site:afar.com OR site:eater.com OR site:theinfatuation.com OR site:michelinguide.com)");
-    return targeted || null;
-  } catch {
-    return null;
-  }
+    // Pass 2: food + travel
+    const foodTravel = await run(q + ' (restaurant OR "best restaurants" OR dining OR food OR travel OR tourism OR visit OR guide)');
+    return foodTravel;
+  } catch { return null; }
 }
 
-// ---- OpenAI call helpers (JSON mode + retry) ----
-async function getMatchesJSON(place, region, attempt=1) {
-  const basePrompt = `
-You are a neighborhood-matching engine.
-
-INPUTS:
-- source place: "${place}"
-- find exactly 3 best matches within: "${region}" (treat this as a city, state, or country as appropriate)
-
-RETURN *ONLY* strict JSON (no prose):
+// ---- OpenAI helpers ----
+async function getMatchesJSON(place, region) {
+  const prompt = `
+Return ONLY strict JSON:
 
 {
   "results": [
@@ -144,7 +153,7 @@ RETURN *ONLY* strict JSON (no prose):
       "match": "Neighborhood",
       "city": "City",
       "region": "Region/State/Country",
-      "blurb": "1–2 concise sentences on why it matches",
+      "blurb": "1–2 sentences why it matches \\"${place}\\"",
       "whatMakesItSpecial": ["3 to 5 short bullets"],
       "landmarks": [
         { "name": "spot", "why": "1 short sentence" },
@@ -155,23 +164,19 @@ RETURN *ONLY* strict JSON (no prose):
       "score": 0.0
     }
   ]
-}`;
+}
 
-  const fallbackPrompt = `Return ONLY strict JSON for 3 matches inside "${region}" that feel like "${place}". Keep fields minimal and factual. Same schema as before.`;
-
-  const prompt = attempt === 1 ? basePrompt : fallbackPrompt;
-
+Inputs: source="${place}", scope="${region}" (prefer neighborhoods, accurate scale).`;
   const resp = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     temperature: 0.6,
     max_tokens: 700,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: "Return strictly valid JSON for a neighborhood-matching API. Never include extra text." },
+      { role: "system", content: "Return strictly valid JSON for a neighborhood-matching API." },
       { role: "user", content: prompt },
     ],
   });
-
   const text = (resp.choices?.[0]?.message?.content || "{}").trim();
   try { return JSON.parse(text); } catch { return {}; }
 }
@@ -184,10 +189,10 @@ function normalizeResults(parsed, place, region) {
     city: r.city || "",
     region: r.region || String(region),
     blurb: r.blurb || "",
-    whatMakesItSpecial: Array.isArray(r?.whatMakesItSpecial) ? r.whatMakesItSpecial.slice(0, 5) : [],
-    landmarks: Array.isArray(r?.landmarks) ? r.landmarks.slice(0, 3).map(l => ({
+    whatMakesItSpecial: Array.isArray(r?.whatMakesItSpecial) ? r.whatMakesItSpecial.slice(0,5) : [],
+    landmarks: Array.isArray(r?.landmarks) ? r.landmarks.slice(0,3).map(l => ({
       name: String(l?.name || "").slice(0, 80),
-      why: String(l?.why || "").slice(0, 160)
+      why: String(l?.why || "").slice(0, 160),
     })) : [],
     tags: Array.isArray(r.tags) ? r.tags.slice(0, 6) : [],
     score: typeof r.score === "number" ? r.score : 0.75,
@@ -203,9 +208,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.6.0",
+      version: "0.7.0",
       sections: ["resultsOnly"],
-      news_filter: "travel/food/hotel (negatives excluded)",
+      news_filter: "hotel-first; then food/tourism (negatives excluded)",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key"
     });
   }
@@ -216,53 +221,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { place, region, includeNews, items, newsOnly } = req.body || {};
+    const { place, region } = req.body || {};
+    if (!place || !region) return res.status(400).json({ ok: false, error: 'Missing JSON: { "place": "...", "region": "..." }' });
+    if (!process.env.OPENAI_API_KEY) return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
 
-    if (newsOnly) {
-      const list = Array.isArray(items) ? items.slice(0, 3) : [];
-      const news = await Promise.all(list.map(async (i) => {
-        const q = [i.match, i.city, i.region].filter(Boolean).join(" ");
-        return await fetchTravelNews(q);
-      }));
-      return res.status(200).json({ ok: true, news });
-    }
+    const parsed = await getMatchesJSON(place, region);
+    const base = normalizeResults(parsed, place, region);
 
-    if (!place || !region) {
-      return res.status(400).json({ ok: false, error: 'Missing JSON: { "place": "...", "region": "..." }' });
-    }
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
-    }
-
-    // Get matches (JSON mode + retry)
-    let parsed = await getMatchesJSON(place, region, 1);
-    let normalized = normalizeResults(parsed, place, region);
-    if (!normalized.length) {
-      parsed = await getMatchesJSON(place, region, 2);
-      normalized = normalizeResults(parsed, place, region);
-    }
-
-    // Attach images (best-effort, in parallel)
-    const withImages = await Promise.all(normalized.map(async (item) => {
+    // Attach image + hotel-first article for each card
+    const withAssets = await Promise.all(base.map(async (item) => {
       const q1 = `${item.match} ${item.city} ${item.region}`;
       const q2 = `${item.city} ${item.region}`;
       const image = (await fetchPlaceImage(q1)) || (await fetchPlaceImage(q2)) || null;
-      return { ...item, image };
+
+      const news = await fetchTravelNews(q1);
+      return { ...item, image, news: news || null };
     }));
 
-    // Attach news if requested
-    const withNews = includeNews
-      ? await Promise.all(withImages.map(async (item) => {
-          const nq = `${item.match} ${item.city} ${item.region}`;
-          const news = await fetchTravelNews(nq);
-          return { ...item, news: news || null };
-        }))
-      : withImages;
-
-    return res.status(200).json({ ok: true, place, region, results: withNews, version: "0.6.0" });
+    return res.status(200).json({ ok: true, place, region, results: withAssets, version: "0.7.0" });
 
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, error: "Server error", detail: String(err?.message || err) });
   }
-} // EOF v0.6.0
+}
