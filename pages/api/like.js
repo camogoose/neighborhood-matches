@@ -1,5 +1,5 @@
 // pages/api/like.js
-// v0.5.4 — JSON mode + one retry; results-only; 3 landmarks; travel-only news w/ negative filter.
+// v0.6.0 — images via Wikipedia; broader travel/food/hotel news; JSON mode + retry.
 // Runtime: Node.js (Next.js API Route)
 
 import OpenAI from "openai";
@@ -11,7 +11,8 @@ function setCors(req, res) {
   const allowedOrigins = [
     "https://www.vorrasi.com",
     "https://vorrasi.com",
-    "https://contrabass-dog-6klj.squarespace.com", // your preview site
+    "https://contrabass-dog-6klj.squarespace.com", // preview
+    "https://contrabass-dog-6kj.squarespace.com",  // (older preview just in case)
     "https://thisplaceisjustlikethatplace.com",
     "https://www.thisplaceisjustlikethatplace.com",
     "https://mike-vorrasi.squarespace.com"
@@ -35,24 +36,51 @@ function clean(str) {
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
+function domainOf(u=""){ try { return new URL(u).host.replace(/^www\./,""); } catch { return ""; } }
+
+// ---- Wikipedia image lookup (best-effort) ----
+async function fetchPlaceImage(q) {
+  try {
+    // Search title
+    const s = await fetch(
+      "https://en.wikipedia.org/w/api.php?action=opensearch&origin=*&format=json&limit=1&namespace=0&search=" + encodeURIComponent(q)
+    );
+    const arr = await s.json();
+    const title = arr?.[1]?.[0];
+    if (!title) return null;
+
+    // Summary with thumbnail
+    const r = await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title));
+    const j = await r.json();
+    const url = j?.thumbnail?.source || j?.originalimage?.source;
+    if (!url) return null;
+
+    return {
+      url,
+      attribution: j?.content_urls?.desktop?.page || ("https://en.wikipedia.org/wiki/" + encodeURIComponent(title))
+    };
+  } catch { return null; }
+}
 
 // ---- travel/news filtering ----
 const NEGATIVE_KEYWORDS = [
   "murder","homicide","shooting","stabbing","assault","kidnapping",
   "rape","bomb","terror","massacre","deadly","death","fatal","police","arrest"
 ];
-function domainOf(u=""){ try { return new URL(u).host.replace(/^www\./,""); } catch { return ""; } }
-function isTravelDomain(u=""){
+
+function isPreferredDomain(u=""){
   const h = domainOf(u);
   if (!h) return false;
-  return /lonelyplanet|cntraveler|afar|atlasobscura|timeout|thrillist|travelandleisure|nationalgeographic|guardian|nytimes|bbc|washingtonpost|eater|curbed|visit|tourism|city|municipality|gov/i.test(h);
+  // Travel + city tourism + food + hotels
+  return /lonelyplanet|cntraveler|travelandleisure|afar|timeout|atlasobscura|frommers|fodors|roughguides|nationalgeographic|guardian|nytimes|bbc|washingtonpost|eater|theinfatuation|michelinguide|bonappetit|thrillist|cond[ée]nast|visit|tourism|city|municipality|gov|hotel|hotels|forbestravelguide/i.test(h);
 }
+
 function hasNegative(text=""){
   const t = text.toLowerCase();
   return NEGATIVE_KEYWORDS.some(k => t.includes(k));
 }
 
-// ---- improved travel/news fetch (scan many items + safe fallback) ----
+// ---- improved travel/food/hotel news fetch ----
 async function fetchTravelNews(q) {
   const make = async (query) => {
     const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" + encodeURIComponent(query);
@@ -79,20 +107,19 @@ async function fetchTravelNews(q) {
         snippet: (desc || "").replace(/<[^>]+>/g, "").slice(0, 180) + ((desc && desc.length > 180) ? "…" : "")
       };
 
-      // Prefer recognized travel/tourism sources
-      if (isTravelDomain(link)) return news;
-      if (!fallback) fallback = news; // safe non-travel fallback
+      if (isPreferredDomain(link)) return news;   // prefer travel/food/hotel domains
+      if (!fallback) fallback = news;             // safe general fallback
     }
-    return fallback; // may be null if everything was filtered
+    return fallback;
   };
 
   try {
-    // Pass 1: general travel intent words
-    const primary = await make(q + " (travel OR tourism OR visit OR guide)");
+    // Pass 1: broad travel/food/hotel intent
+    const primary = await make(q + " (travel OR tourism OR visit OR guide OR restaurant OR dining OR food OR cafe OR bar OR hotel OR hotels OR \"where to eat\" OR \"where to stay\" OR \"best restaurants\" OR \"hotel review\")");
     if (primary) return primary;
 
-    // Pass 2: target popular travel sites
-    const targeted = await make(q + " (site:timeout.com OR site:lonelyplanet.com OR site:cntraveler.com OR site:travelandleisure.com OR site:afar.com)");
+    // Pass 2: target popular sites directly
+    const targeted = await make(q + " (site:timeout.com OR site:lonelyplanet.com OR site:cntraveler.com OR site:travelandleisure.com OR site:afar.com OR site:eater.com OR site:theinfatuation.com OR site:michelinguide.com)");
     return targeted || null;
   } catch {
     return null;
@@ -130,9 +157,7 @@ RETURN *ONLY* strict JSON (no prose):
   ]
 }`;
 
-  const fallbackPrompt = `
-Return ONLY strict JSON for 3 matches inside "${region}" that feel like "${place}".
-Keep fields minimal and factual. Same schema as before.`;
+  const fallbackPrompt = `Return ONLY strict JSON for 3 matches inside "${region}" that feel like "${place}". Keep fields minimal and factual. Same schema as before.`;
 
   const prompt = attempt === 1 ? basePrompt : fallbackPrompt;
 
@@ -140,7 +165,7 @@ Keep fields minimal and factual. Same schema as before.`;
     model: "gpt-4o-mini",
     temperature: 0.6,
     max_tokens: 700,
-    response_format: { type: "json_object" }, // force valid JSON
+    response_format: { type: "json_object" },
     messages: [
       { role: "system", content: "Return strictly valid JSON for a neighborhood-matching API. Never include extra text." },
       { role: "user", content: prompt },
@@ -178,9 +203,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.5.4",
+      version: "0.6.0",
       sections: ["resultsOnly"],
-      news_filter: "travel-only (negatives excluded)",
+      news_filter: "travel/food/hotel (negatives excluded)",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key"
     });
   }
@@ -191,9 +216,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { place, region, includeNews, newsOnly, items } = req.body || {};
+    const { place, region, includeNews, items, newsOnly } = req.body || {};
 
-    // News-only (not used by the page right now, but handy)
     if (newsOnly) {
       const list = Array.isArray(items) ? items.slice(0, 3) : [];
       const news = await Promise.all(list.map(async (i) => {
@@ -210,7 +234,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
     }
 
-    // Try once (JSON mode), then retry with simpler prompt if empty
+    // Get matches (JSON mode + retry)
     let parsed = await getMatchesJSON(place, region, 1);
     let normalized = normalizeResults(parsed, place, region);
     if (!normalized.length) {
@@ -218,20 +242,27 @@ export default async function handler(req, res) {
       normalized = normalizeResults(parsed, place, region);
     }
 
-    // Optionally attach news (slower)
-    if (includeNews && normalized.length) {
-      const withNews = await Promise.all(normalized.map(async (item) => {
-        const nq = `${item.match} ${item.city} ${item.region}`;
-        const news = await fetchTravelNews(nq);
-        return { ...item, news: news || null };
-      }));
-      return res.status(200).json({ ok: true, place, region, results: withNews, version: "0.5.4" });
-    }
+    // Attach images (best-effort, in parallel)
+    const withImages = await Promise.all(normalized.map(async (item) => {
+      const q1 = `${item.match} ${item.city} ${item.region}`;
+      const q2 = `${item.city} ${item.region}`;
+      const image = (await fetchPlaceImage(q1)) || (await fetchPlaceImage(q2)) || null;
+      return { ...item, image };
+    }));
 
-    return res.status(200).json({ ok: true, place, region, results: normalized, version: "0.5.4" });
+    // Attach news if requested
+    const withNews = includeNews
+      ? await Promise.all(withImages.map(async (item) => {
+          const nq = `${item.match} ${item.city} ${item.region}`;
+          const news = await fetchTravelNews(nq);
+          return { ...item, news: news || null };
+        }))
+      : withImages;
+
+    return res.status(200).json({ ok: true, place, region, results: withNews, version: "0.6.0" });
 
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, error: "Server error", detail: String(err?.message || err) });
   }
-} // EOF v0.5.4
+} // EOF v0.6.0
