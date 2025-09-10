@@ -1,32 +1,32 @@
 // pages/api/like.js
-// v0.5.4 — 3 matches (results-only) + hotel-first travel news (negatives excluded)
+// v0.5.6 — 3 matches (results-only) + STRICT hotel roundups ("where to stay" / "best hotels")
+// Excludes newsy/negative items (lawsuits, crashes, foreclosures, etc.)
 // Runtime: Node.js (not Edge)
 
 import OpenAI from "openai";
 
 export const config = { runtime: "nodejs", api: { bodyParser: true } };
 
-// ---- CORS: allow your preview + live Squarespace domains (edit as needed) ----
+// ---- CORS: allow Squarespace preview + live domains ----
 function setCors(req, res) {
   const allowedOrigins = [
-    // Your personal site (optional)
+    // Personal site (optional)
     "https://www.vorrasi.com",
     "https://vorrasi.com",
 
-    // Squarespace preview domain for THIS project (keep while testing)
-    // NOTE: this subdomain can change. Update if your preview URL differs.
-    "https://contrabass-dog-6klj.squarespace.com",
-
-    // Your live custom domain (both www + bare)
+    // Live custom domain (both www + bare)
     "https://thisplaceisjustlikethatplace.com",
     "https://www.thisplaceisjustlikethatplace.com",
 
     // Squarespace editor (sometimes used during previews)
-    "https://mike-vorrasi.squarespace.com"
+    "https://mike-vorrasi.squarespace.com",
   ];
 
+  // Allow any *.squarespace.com preview (safer than hardcoding a single slug)
+  const SQS_REGEX = /^https:\/\/[a-z0-9-]+\.squarespace\.com$/i;
+
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && (allowedOrigins.includes(origin) || SQS_REGEX.test(origin))) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Vary", "Origin");
@@ -42,51 +42,110 @@ function clean(str) {
   return String(str || "")
     .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
 }
+function stripTags(html) { return String(html || "").replace(/<[^>]+>/g, ""); }
 
-// Prefer hotel/where-to-stay first; then food/tourism; exclude negative news
+// --------------------
+// News (roundups only)
+// --------------------
+
+// Positive phrases we WANT
+const POSITIVE_PHRASES = [
+  "where to stay",
+  "best hotels",
+  "top hotels",
+  "hotel guide",
+  "best places to stay",
+  "best areas to stay",
+  "best neighborhoods to stay",
+];
+
+// Publishers we prefer (travel-focused)
+const POSITIVE_SITES = [
+  "site:cntraveler.com",
+  "site:travelandleisure.com",
+  "site:afar.com",
+  "site:lonelyplanet.com",
+  "site:timeout.com",
+  "site:nytimes.com",          // has travel/36 hours/where to stay guides
+  "site:planetware.com",
+  "site:theculturetrip.com",
+].join(" OR ");
+
+// Things we want to KEEP OUT completely
+const NEGATIVE_TERMS = [
+  "sue","sues","lawsuit","legal","court","trial","crash","crashes","collision",
+  "killed","dies","shooting","police","arrest","homicide","crime","assault",
+  "foreclosure","bankruptcy","closure","closing","demolition","eviction",
+  "scandal","protest","boycott","strike","fraud","raid","fire","explosion",
+  "merger","acquisition","deal","bought","purchased" // real-estate/finance-y news
+];
+
+// Build a strict query that highly favors roundups/guides
 function buildNewsQuery(q) {
-  const positiveSites = [
-    "site:cntraveler.com",
-    "site:travelandleisure.com",
-    "site:timeout.com",
-    "site:nytimes.com",
-    "site:eater.com",
-    "site:bonappetit.com",
-    "site:thrillist.com",
-    "site:airbnb.com",
-    "site:afar.com",
-    "site:lonelyplanet.com"
-  ].join(" OR ");
-
-  const positives = '("where to stay" OR hotel OR hotels OR lodging OR airbnb OR travel OR tourism OR guide OR neighborhood)';
-  const negatives = "-police -murder -death -shooting -killed -dies -arrest -homicide -crime -assault -lawsuit";
-  return `${q} (${positives}) (${positiveSites}) ${negatives}`;
+  const positives =
+    `(intitle:"where to stay" OR intitle:"best hotels" OR intitle:"top hotels" OR ` +
+    `intitle:"best places to stay" OR intitle:"best areas to stay" OR intitle:"best neighborhoods to stay" OR "hotel guide")`;
+  // We still include site filters, but the intitle checks do most of the work
+  const negatives = NEGATIVE_TERMS.map(x => `-${x}`).join(" ");
+  return `${q} ${positives} (${POSITIVE_SITES}) ${negatives}`;
 }
 
+// Parse Google News RSS and return the FIRST item that looks like a legit roundup
 async function fetchTravelNews(q) {
-  const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q="
-    + encodeURIComponent(buildNewsQuery(q));
+  const url =
+    "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" +
+    encodeURIComponent(buildNewsQuery(q));
+
   try {
     const r = await fetch(url);
     const xml = await r.text();
-    const item = pick(xml, /<item>([\s\S]*?)<\/item>/i);
-    if (!item) return null;
-    const title = clean(pick(item, /<title>([\s\S]*?)<\/title>/i));
-    const link  = clean(pick(item, /<link>([\s\S]*?)<\/link>/i));
-    const desc  = clean(pick(item, /<description>([\s\S]*?)<\/description>/i));
-    return {
-      title: title || "",
-      url: link || "",
-      image: "", // not used in embed now
-      snippet: (desc || "").replace(/<[^>]+>/g, "").slice(0, 180) + ((desc && desc.length > 180) ? "…" : "")
+
+    // Collect the first ~10 items and filter
+    const items = [];
+    const re = /<item>([\s\S]*?)<\/item>/gi;
+    let m;
+    while ((m = re.exec(xml)) && items.length < 12) items.push(m[1]);
+
+    const hasNegative = (text) =>
+      NEGATIVE_TERMS.some(bad => new RegExp(`\\b${bad}\\b`, "i").test(text));
+
+    const looksLikeRoundup = (title, desc) => {
+      const inTitle = POSITIVE_PHRASES.some(p => new RegExp(p, "i").test(title));
+      const inDesc  = POSITIVE_PHRASES.some(p => new RegExp(p, "i").test(desc));
+      return (inTitle || inDesc);
     };
+
+    for (const raw of items) {
+      const title = clean(pick(raw, /<title>([\s\S]*?)<\/title>/i));
+      const link  = clean(pick(raw, /<link>([\s\S]*?)<\/link>/i));
+      const descH = clean(pick(raw, /<description>([\s\S]*?)<\/description>/i));
+      const desc  = stripTags(descH);
+
+      const haystack = `${title} ${desc}`;
+      if (!looksLikeRoundup(title, desc)) continue;
+      if (hasNegative(haystack)) continue;
+
+      return {
+        title: title || "",
+        url: link || "",
+        image: "", // not used in embed now
+        snippet: desc.slice(0, 200) + (desc.length > 200 ? "…" : "")
+      };
+    }
+
+    // Nothing suitable
+    return null;
   } catch {
     return null;
   }
 }
 
+// --------------------
+// API handler
+// --------------------
 export default async function handler(req, res) {
   setCors(req, res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -95,9 +154,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.5.4",
+      version: "0.5.6",
       sections: ["resultsOnly"],
-      news_filter: "travel/hotel-first (negatives excluded)",
+      news_filter: "roundups-only (where to stay / best hotels)",
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
     });
   }
@@ -189,7 +248,7 @@ Return EXACTLY 3 candidates in strictly valid JSON:
       source: "openai",
     }));
 
-    // Attach hotel-first travel news (best-effort)
+    // Attach roundup-style travel article (best-effort)
     const withNews = await Promise.all(normalized.map(async (item) => {
       const nq = `${item.match} ${item.city} ${item.region}`;
       const news = await fetchTravelNews(nq);
@@ -200,7 +259,7 @@ Return EXACTLY 3 candidates in strictly valid JSON:
       ok: true,
       place, region,
       results: withNews,
-      version: "0.5.4"
+      version: "0.5.6"
     });
 
   } catch (err) {
