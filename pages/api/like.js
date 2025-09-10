@@ -52,29 +52,48 @@ function hasNegative(text=""){
   return NEGATIVE_KEYWORDS.some(k => t.includes(k));
 }
 
+// ---- improved travel/news fetch (scan many items + safe fallback) ----
 async function fetchTravelNews(q) {
-  const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q="
-    + encodeURIComponent(q + " (travel OR tourism OR visit OR guide)");
-  try {
+  const make = async (query) => {
+    const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" + encodeURIComponent(query);
     const r = await fetch(url);
     const xml = await r.text();
-    const item = pick(xml, /<item>([\s\S]*?)<\/item>/i);
-    if (!item) return null;
-    const title = clean(pick(item, /<title>([\s\S]*?)<\/title>/i));
-    const link  = clean(pick(item, /<link>([\s\S]*?)<\/link>/i));
-    const desc  = clean(pick(item, /<description>([\s\S]*?)<\/description>/i));
-    const img   = pick(item, /<media:content[^>]*url="([^"]+)"/i)
-               || pick(item, /<enclosure[^>]*url="([^"]+)"/i) || "";
 
-    if (!isTravelDomain(link)) return null;
-    if (hasNegative((title||"") + " " + (desc||""))) return null;
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map(m => m[1]).slice(0, 12);
+    let fallback = null;
 
-    return {
-      title: title || "",
-      url: link || "",
-      image: img || "",
-      snippet: (desc || "").replace(/<[^>]+>/g, "").slice(0, 180) + ((desc && desc.length > 180) ? "…" : "")
-    };
+    for (const item of items) {
+      const title = clean(pick(item, /<title>([\s\S]*?)<\/title>/i));
+      const link  = clean(pick(item, /<link>([\s\S]*?)<\/link>/i));
+      const desc  = clean(pick(item, /<description>([\s\S]*?)<\/description>/i));
+      const img   = pick(item, /<media:content[^>]*url="([^"]+)"/i)
+                 || pick(item, /<enclosure[^>]*url="([^"]+)"/i) || "";
+
+      if (!link) continue;
+      if (hasNegative((title||"") + " " + (desc||""))) continue;
+
+      const news = {
+        title: title || "",
+        url: link,
+        image: img || "",
+        snippet: (desc || "").replace(/<[^>]+>/g, "").slice(0, 180) + ((desc && desc.length > 180) ? "…" : "")
+      };
+
+      // Prefer recognized travel/tourism sources
+      if (isTravelDomain(link)) return news;
+      if (!fallback) fallback = news; // safe non-travel fallback
+    }
+    return fallback; // may be null if everything was filtered
+  };
+
+  try {
+    // Pass 1: general travel intent words
+    const primary = await make(q + " (travel OR tourism OR visit OR guide)");
+    if (primary) return primary;
+
+    // Pass 2: target popular travel sites
+    const targeted = await make(q + " (site:timeout.com OR site:lonelyplanet.com OR site:cntraveler.com OR site:travelandleisure.com OR site:afar.com)");
+    return targeted || null;
   } catch {
     return null;
   }
