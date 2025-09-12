@@ -1,6 +1,5 @@
 // /pages/api/like.js
 export default async function handler(req, res) {
-  // --- Allow CORS so Squarespace can fetch this API ---
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -9,19 +8,14 @@ export default async function handler(req, res) {
   try {
     const { place, region } = parseBody(req);
 
-    // If missing input, return empty list
     if (!place || !region) {
       return res.status(200).json({ ok: true, results: [] });
     }
 
-    // Build matches (replace with your real logic)
     const results = await getMatches(place, region);
-
-    // Send back results
     res.status(200).json({ ok: true, results });
   } catch (err) {
     console.error(err);
-    // Always return 200 so the front-end doesn't treat as a network error
     res.status(200).json({ ok: false, error: err.message });
   }
 }
@@ -31,14 +25,12 @@ function parseBody(req) {
     try {
       if (typeof req.body === "string") return JSON.parse(req.body);
       return req.body || {};
-    } catch {
-      return {};
-    }
+    } catch { return {}; }
   }
   return req.query || {};
 }
 
-// Stub matching logic (replace with real algorithm / DB lookup)
+// Simple stub until your real matcher is built
 async function getMatches(place, region) {
   return [
     {
