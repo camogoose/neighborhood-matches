@@ -1,0 +1,1186 @@
+<!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
+<style>
+/* The native form remains in the page; only its duplicate launcher is hidden. */
+body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
+  display: none !important;
+}
+.sqs-modal-lightbox.tt-contact-modal {
+  z-index: 10002 !important;
+}
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap');
+
+  /* Wrapper */
+  #like-that-ish{
+    --cream:  #f6f1e7;
+    --paper:  #fbf7ef;
+    --brown:  #4b2e1f;
+    --ink:    #2b1a12;
+    --orange: #d97a2b;
+    --yellow: #f2c94c;
+    --cyan:   #35c9e8;
+
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 44px 34px 40px 34px;
+    border-radius: 22px;
+
+    font-family: "Source Serif 4", Georgia, serif;
+    color: var(--brown);
+
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,.65), rgba(255,255,255,0) 52%),
+      radial-gradient(circle at 80% 30%, rgba(255,255,255,.35), rgba(255,255,255,0) 55%),
+      var(--paper);
+
+    box-shadow: 0 18px 40px rgba(75,46,31,.10);
+    position: relative;
+    overflow: hidden;
+  }
+
+
+
+  #like-that-ish > *{
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Headline + subcopy */
+  #like-that-ish .tt-title{
+    margin: 18px 0 10px 0;
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 900;
+    font-size: clamp(36px, 4.2vw, 58px);
+    line-height: 1.03;
+    letter-spacing: -0.03em;
+    color: var(--brown);
+  }
+
+  #like-that-ish .tt-sub{
+    margin: 0 0 18px 0;
+    color: rgba(75,46,31,.82);
+    font-size: 18px;
+    line-height: 1.45;
+  }
+
+  /* Navigation and artwork share a header; offsets use the artwork dimensions. */
+  #tt-swoosh-header{
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    padding-top: var(--tt-swoosh-topspace, 52px);
+    overflow: visible;
+    background: var(--tpljt-cream, #fbf6ee);
+  }
+  #tt-nav-shell{
+    --brown: #4b2e1f;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10000;
+    display: none;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 0 12px;
+    background: transparent;
+    color: var(--brown);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  #tt-nav-shell.tt-nav-ready{ display: block; }
+  #tt-nav-shell *,
+  #tt-nav-shell *::before,
+  #tt-nav-shell *::after{ box-sizing: border-box; }
+  #tt-top-nav{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0 clamp(8px, 2vw, 24px);
+    width: min(680px, 72%);
+    margin: 0 28% 0 auto;
+  }
+  #tt-top-nav button{
+    appearance: none;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    display: flex;
+    align-items: flex-end;
+    padding: 10px 3px 0;
+    min-height: 44px;
+    color: var(--brown);
+    font: inherit;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 1.5;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+    cursor: pointer;
+    text-decoration: none;
+    text-underline-offset: 5px;
+    box-shadow: none;
+  }
+  #tt-top-nav button:hover,
+  #tt-top-nav button[aria-expanded="true"]{
+    text-decoration: underline;
+  }
+  #tt-nav-shell button:focus-visible,
+  #tt-nav-shell input:focus-visible,
+  #tt-nav-shell textarea:focus-visible,
+  #tt-nav-shell a:focus-visible{
+    outline: 2px solid #087e96;
+    outline-offset: 3px;
+  }
+  #tt-nav-shell .tt-info-panel{
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(560px, calc(100vw - 24px));
+    max-height: min(70vh, 620px);
+    max-height: min(70dvh, 620px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0;
+    padding: 22px;
+    border: 1px solid rgba(75,46,31,.22);
+    border-radius: 16px;
+    background: #fbf7ef;
+    box-shadow: 0 16px 38px rgba(75,46,31,.20);
+    color: var(--brown);
+  }
+  #tt-nav-shell .tt-info-panel.is-open{ display: block; }
+  #tt-nav-shell .tt-info-panel h2,
+  #tt-nav-shell .tt-info-panel h3{
+    font-family: "Fraunces", Georgia, serif;
+    color: var(--brown);
+    letter-spacing: normal;
+    line-height: 1.3;
+  }
+  #tt-nav-shell .tt-info-panel h2{ margin: 0 38px 12px 0; font-size: 22px; }
+  #tt-nav-shell .tt-info-panel h3{ margin: 18px 0 5px; font-size: 17px; }
+  #tt-nav-shell .tt-info-panel p{ margin: 0 0 10px; line-height: 1.5; }
+  #tt-nav-shell .tt-info-panel p:last-child{ margin-bottom: 0; }
+  #tt-nav-shell .tt-panel-close{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--brown);
+    font: 24px/1 Georgia, serif;
+    cursor: pointer;
+    box-shadow: none;
+  }
+  #tt-nav-shell .tt-panel-close:hover{ background: rgba(75,46,31,.08); }
+  #tt-nav-shell .tt-contact-email{
+    color: var(--brown);
+    overflow-wrap: anywhere;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  #tt-nav-shell .tt-contact-button{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin: 8px 0 12px;
+    padding: 10px 22px;
+    border: 2px solid #4b2e1f;
+    border-radius: 14px;
+    background: #4b2e1f;
+    color: #fffaf2;
+    font: 700 18px "Source Serif 4", Georgia, serif;
+    text-decoration: none;
+    box-shadow: 0 4px 0 rgba(75,46,31,.20);
+  }
+  #tt-nav-shell .tt-contact-button:hover{ background: #6b4531; }
+  #tt-nav-shell .tt-contact-note{ font-size: 14px; color: #73594a; }
+
+  /* Layout */
+  #like-that-ish .tt-form{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 14px 0 10px 0;
+  }
+
+  #like-that-ish .tt-label{
+    font-weight: 700;
+    color: rgba(75,46,31,.90);
+    font-size: .95rem;
+    display: grid;
+    gap: 6px;
+  }
+
+  #like-that-ish .tt-hint{
+    font-weight: 600;
+    color: rgba(75,46,31,.70);
+    font-size: .92rem;
+  }
+
+  /* Inputs */
+  #like-that-ish .tt-input{
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 2px solid rgba(75,46,31,.22);
+    background: rgba(255,255,255,.45);
+    color: var(--ink);
+    box-shadow: 0 6px 0 rgba(75,46,31,.08);
+    outline: none;
+    font-size: 1.05rem;
+  }
+  #like-that-ish .tt-input:focus{
+    border-color: rgba(217,122,43,.55);
+    box-shadow: 0 6px 0 rgba(75,46,31,.08), 0 0 0 4px rgba(217,122,43,.14);
+  }
+
+  /* Optional match preferences */
+  #like-that-ish .tt-priorities{
+    border: 0;
+    margin: 4px 0 0;
+    padding: 0;
+  }
+  #like-that-ish .tt-priority-heading{
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+  #like-that-ish .tt-priority-heading .tt-label{ margin: 0; }
+  #like-that-ish .tt-choice-grid{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #like-that-ish .tt-choice input{
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  #like-that-ish .tt-choice span{
+    display: inline-block;
+    padding: 8px 12px;
+    border: 2px solid rgba(75,46,31,.18);
+    border-radius: 999px;
+    background: rgba(255,255,255,.46);
+    color: var(--ink);
+    font-weight: 700;
+    font-size: .9rem;
+    line-height: 1.1;
+    cursor: pointer;
+    transition: background .12s ease, border-color .12s ease, transform .12s ease;
+  }
+  #like-that-ish .tt-choice input:checked + span{
+    background: var(--cyan);
+    border-color: rgba(12,126,151,.72);
+    color: #123a43;
+    transform: translateY(-1px);
+  }
+  #like-that-ish .tt-choice input:focus-visible + span{
+    outline: 3px solid rgba(53,201,232,.34);
+    outline-offset: 2px;
+  }
+
+  /* Button row */
+  #like-that-ish .tt-actions{
+    display: flex;
+    justify-content: center;
+    margin: 14px 0 6px 0;
+  }
+
+  /* Main button */
+  #like-that-ish #findBtn{
+    appearance: none;
+    border: 2px solid rgba(75,46,31,.35);
+    background: linear-gradient(to bottom, #e78933, var(--orange));
+    color: var(--cream);
+
+    border-radius: 28px;
+    padding: 14px 42px;
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 900;
+    font-size: 30px;
+    letter-spacing: .01em;
+    text-transform: lowercase;
+
+    cursor: pointer;
+    min-width: 260px;
+
+    box-shadow:
+      0 10px 0 rgba(75,46,31,.25),
+      0 18px 34px rgba(75,46,31,.14);
+
+    transition: transform .12s ease, filter .12s ease;
+  }
+  #like-that-ish #findBtn:hover{
+    filter: brightness(1.03);
+    transform: translateY(-1px);
+  }
+  #like-that-ish #findBtn:active{
+    transform: translateY(2px);
+    box-shadow:
+      0 6px 0 rgba(75,46,31,.25),
+      0 12px 22px rgba(75,46,31,.12);
+  }
+  #like-that-ish #findBtn:disabled{
+    opacity: .75;
+    cursor: not-allowed;
+  }
+
+  /* Status */
+  #like-that-ish #status{
+    min-height: 22px;
+    margin: 6px 0 8px 0;
+    font-size: .95rem;
+    color: #b00020;
+    text-align: center;
+  }
+
+  /* Share top link */
+  #like-that-ish #shareTop{
+    display: none;
+    margin: 6px 0 4px;
+    text-align: right;
+  }
+  #like-that-ish #shareTopLink{
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: .95rem;
+    color: rgba(75,46,31,.70);
+    text-decoration: underline;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Results grid */
+  #like-that-ish #results{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px;
+    margin: 12px 0 8px 0;
+  }
+
+  /* Cards */
+  #like-that-ish .tt-card{
+    background: rgba(255,255,255,.40);
+    border: 2px solid rgba(75,46,31,.16);
+    border-radius: 18px;
+    padding: 16px 16px;
+    box-shadow: 0 10px 0 rgba(75,46,31,.06);
+  }
+
+  #like-that-ish .tt-card-title{
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 900;
+    font-size: 20px;
+    margin: 0 0 6px 0;
+    color: var(--brown);
+  }
+
+  #like-that-ish .tt-card p{
+    margin: 0 0 10px 0;
+    color: rgba(75,46,31,.82);
+    line-height: 1.4;
+  }
+
+  #like-that-ish .tt-h{
+    font-weight: 900;
+    color: rgba(75,46,31,.92);
+    margin: 10px 0 6px 0;
+  }
+
+  #like-that-ish .tt-list{
+    margin: 0 0 6px 18px;
+    padding: 0;
+    color: rgba(75,46,31,.82);
+  }
+  #like-that-ish .tt-list li{ margin: 4px 0; }
+
+  /* Chips */
+  #like-that-ish .tt-chips{
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 10px 0 8px 0;
+  }
+  #like-that-ish .tt-chip{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(75,46,31,.06);
+    border: 1px solid rgba(75,46,31,.14);
+    color: rgba(75,46,31,.85);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+
+  /* Map */
+  #like-that-ish .tt-map-wrap{
+    margin-top: 10px;
+  }
+  #like-that-ish .tt-map-frame{
+    overflow: hidden;
+    border-radius: 14px;
+    border: 2px solid rgba(75,46,31,.14);
+    box-shadow: 0 8px 0 rgba(75,46,31,.05);
+    background: rgba(255,255,255,.35);
+  }
+  #like-that-ish iframe{
+    width: 100%;
+    height: 120px;
+    border: 0;
+    display: block;
+  }
+
+/* Article tile (warm palette) */
+#like-that-ish .tt-article{
+  background: rgba(217,122,43,.16);                 /* warm orange wash */
+  border: 2px solid rgba(75,46,31,.22);             /* brown outline */
+  border-radius: 14px;
+  padding: 12px 12px;
+  margin-top: 10px;
+  box-shadow: 0 8px 0 rgba(75,46,31,.06);
+}
+#like-that-ish .tt-article a{
+  color: rgba(75,46,31,.92);                         /* readable brown */
+  text-decoration: none;
+  display: block;
+}
+#like-that-ish .tt-article a:hover{
+  filter: brightness(1.02);
+}
+  
+#like-that-ish .tt-article-title{
+  font-weight: 900;
+  line-height: 1.25;
+  color: rgba(75,46,31,.95);
+}
+#like-that-ish .tt-article-snippet{
+  font-size: .92rem;
+  opacity: 1;
+  margin-top: 4px;
+  line-height: 1.35;
+  color: rgba(75,46,31,.80);
+}
+
+  /* Links */
+ #like-that-ish a{
+  color: rgba(217,122,43,.95);        /* orange */
+  text-decoration: underline;
+  font-weight: 800;
+}
+#like-that-ish a:hover{
+  color: rgba(75,46,31,.95);          /* brown on hover */
+}
+  #like-that-ish a:hover{ filter: brightness(.98); }
+
+  /* Bottom share button */
+  #like-that-ish #shareBottom{
+    display: none;
+    margin: 14px 0 18px;
+    text-align: center;
+  }
+  #like-that-ish #shareResultsBtn{
+    background: rgba(255,255,255,.55);
+    color: rgba(75,46,31,.92);
+    border: 2px solid rgba(75,46,31,.35);
+    border-radius: 18px;
+    padding: 12px 18px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 8px 0 rgba(75,46,31,.10);
+  }
+  #like-that-ish #shareResultsBtn:hover{
+    filter: brightness(1.02);
+    transform: translateY(-1px);
+  }
+  #like-that-ish #shareResultsBtn:active{
+    transform: translateY(2px);
+    box-shadow: 0 5px 0 rgba(75,46,31,.10);
+  }
+
+  /* Skeleton */
+  #like-that-ish .tt-skel{
+    background: rgba(255,255,255,.40);
+    border: 2px solid rgba(75,46,31,.14);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 10px 0 rgba(75,46,31,.06);
+  }
+  #like-that-ish .tt-bar{
+    height: 12px;
+    border-radius: 8px;
+    background: rgba(75,46,31,.10);
+    margin: 8px 0;
+  }
+
+  /* Toast */
+  #like-that-ish #toast{
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    background: #111;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: .95rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+    z-index: 9999;
+  }
+
+  @media (max-width: 759px){
+    #tt-top-nav{
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 700px){
+    #like-that-ish{ padding: 34px 18px 28px 18px; }
+    #like-that-ish #findBtn{ width: 100%; min-width: 0; }
+    #tt-top-nav{ gap: 0 8px; }
+    #tt-top-nav button{ font-size: 14px; }
+    #tt-nav-shell .tt-info-panel{ padding: 18px; }
+    #like-that-ish .tt-priority-heading{ flex-wrap: wrap; }
+  }
+</style>
+
+<div id="tt-nav-shell">
+  <nav id="tt-top-nav" class="tt-guide-nav" aria-label="Learn about this tool">
+    <button type="button" data-panel="howPanel" aria-controls="howPanel" aria-expanded="false">How it works</button>
+    <button type="button" data-panel="aboutPanel" aria-controls="aboutPanel" aria-expanded="false">About</button>
+    <button type="button" data-panel="faqPanel" aria-controls="faqPanel" aria-expanded="false">FAQ</button>
+    <button type="button" id="tt-contact-open" aria-haspopup="dialog">Contact</button>
+  </nav>
+
+  <section id="howPanel" class="tt-info-panel" aria-labelledby="howPanel-title" hidden>
+    <button type="button" class="tt-panel-close" aria-label="Close How it works">×</button>
+    <h2 id="howPanel-title">How it works</h2>
+    <p>Start with a neighborhood, city, or town you already love. Then tell us where you’re headed. We’ll suggest three places with similar character—not simply the most famous tourist spots.</p>
+    <p>Choose up to three priorities if you want the matches to lean toward food, nightlife, arts, walkability, or another part of the experience.</p>
+  </section>
+
+  <section id="aboutPanel" class="tt-info-panel" aria-labelledby="aboutPanel-title" hidden>
+    <button type="button" class="tt-panel-close" aria-label="Close About this place">×</button>
+    <h2 id="aboutPanel-title">About this place</h2>
+    <p>This began while planning a trip to Denmark. The question wasn’t “What’s the Times Square of Denmark?” It was: “What’s the East Village of Denmark?”</p>
+    <p>That became the idea behind these destination dupes: use a place you know to find somewhere that may feel right in a place you don’t know yet.</p>
+  </section>
+
+  <section id="faqPanel" class="tt-info-panel" aria-labelledby="faqPanel-title" hidden>
+    <button type="button" class="tt-panel-close" aria-label="Close Frequently asked questions">×</button>
+    <h2 id="faqPanel-title">Frequently asked questions</h2>
+    <h3>Can I enter a neighborhood, city, or town?</h3>
+    <p>Yes. More specific starting places usually produce more specific matches.</p>
+    <h3>Are these exact duplicates?</h3>
+    <p>No. Places don’t have perfect twins. Think of the results as three thoughtful interpretations of what you love about your starting place.</p>
+    <h3>Why might a result be just outside my destination?</h3>
+    <p>A nearby place may occasionally appear when it is an especially strong match. A stricter search-boundary option is planned.</p>
+    <h3>Why three results?</h3>
+    <p>Each result emphasizes a slightly different part of the match, giving you useful alternatives instead of pretending there is one perfect answer.</p>
+  </section>
+
+  <section id="contactPanel" class="tt-info-panel" aria-labelledby="contactPanel-title" hidden>
+    <button type="button" class="tt-panel-close" aria-label="Close Contact">×</button>
+    <h2 id="contactPanel-title">Say hello.</h2>
+    <p>Have a question, a suggestion, or a match we should know about? We’d love to hear from you.</p>
+    <p role="status">The contact form is still loading. Please try Contact again in a moment.</p>
+  </section>
+</div>
+
+<div id="like-that-ish">
+  <h1 class="tt-title">find your favorite neighborhood, anywhere.</h1>
+  <p id="subHeadline" class="tt-sub">
+    Type in a city or neighborhood you love — like <em>SoHo, NYC</em> — and discover places just like it in the region you’re curious about.
+  </p>
+
+  <div class="tt-form">
+    <label class="tt-label">This place
+  <input id="sourcePlace" class="tt-input" type="text" placeholder="a neighborhood, city, or town" />
+</label>
+
+<label class="tt-label">Is just like that place in <span class="tt-hint">(Name your destination)</span>
+  <input id="regionInput" class="tt-input" type="text" placeholder="your destination" />
+</label>
+
+    <fieldset class="tt-priorities">
+      <div class="tt-priority-heading">
+        <legend class="tt-label">What matters most?</legend>
+        <span class="tt-hint">Optional — choose up to 3</span>
+      </div>
+      <div class="tt-choice-grid">
+        <label class="tt-choice"><input type="checkbox" name="priority" value="food and restaurants"><span>food</span></label>
+        <label class="tt-choice"><input type="checkbox" name="priority" value="nightlife"><span>nightlife</span></label>
+        <label class="tt-choice"><input type="checkbox" name="priority" value="arts and creative scene"><span>arts</span></label>
+        <label class="tt-choice"><input type="checkbox" name="priority" value="architecture and atmosphere"><span>architecture</span></label>
+        <label class="tt-choice"><input type="checkbox" name="priority" value="local and less touristy"><span>local</span></label>
+        <label class="tt-choice"><input type="checkbox" name="priority" value="walkability"><span>walkability</span></label>
+        <label class="tt-choice"><input type="checkbox" name="priority" value="affordable"><span>affordable</span></label>
+        <label class="tt-choice"><input type="checkbox" name="priority" value="gritty"><span>cool</span></label>
+        <label class="tt-choice"><input type="checkbox" name="priority" value="polished"><span>fancy</span></label>
+      </div>
+    </fieldset>
+
+    <div class="tt-actions">
+      <button id="findBtn" type="button">let’s go</button>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="shareTop">
+    <button id="shareTopLink" type="button">Copy shareable link</button>
+  </div>
+
+  <div id="results"></div>
+
+  <div id="shareBottom">
+    <button id="shareResultsBtn" type="button">Share your results</button>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+(function(){
+  const examples = ["SoHo, NYC","Shoreditch, London","Le Marais, Paris","Kreuzberg, Berlin","Södermalm, Stockholm"];
+  const subHeadline = document.getElementById("subHeadline");
+  subHeadline.innerHTML = `Type in a city or neighborhood you love — like <em>${examples[Math.floor(Math.random()*examples.length)]}</em> — and discover places just like it in the region you’re curious about.`;
+
+  const API_URL = "https://neighborhood-matches.vercel.app/api/like";
+
+  const $ = (id) => document.getElementById(id);
+  const placeEl = $("sourcePlace"), regionEl = $("regionInput"), btn = $("findBtn");
+  const statusEl = $("status"), resultsEl = $("results");
+  const shareTop = $("shareTop"), shareTopLink = $("shareTopLink");
+  const shareBottom = $("shareBottom"), shareBtn = $("shareResultsBtn");
+  const toastEl = $("toast");
+  const priorityEls = Array.from(document.querySelectorAll('input[name="priority"]'));
+
+  const navShell = $("tt-nav-shell");
+
+  // Keep the V6 artwork/card spacing and place the links in the cream pocket.
+  // In this 2500px-wide artwork, y=88 stays safely above the yellow line
+  // throughout the straight area and the start of the curve.
+  function mountNavigation(){
+    const stripe = $("tpljt-stripe");
+    if (!stripe || !stripe.parentElement) return false;
+    let header = $("tt-swoosh-header");
+    if (!header) {
+      header = document.createElement("div");
+      header.id = "tt-swoosh-header";
+      stripe.before(header);
+    }
+    header.append(navShell, stripe);
+    navShell.classList.add("tt-nav-ready");
+
+    function positionNavigation(){
+      const width = stripe.getBoundingClientRect().width;
+      const menuHeight = navShell.getBoundingClientRect().height;
+      if (!width || !menuHeight) return;
+      const narrow = window.matchMedia("(max-width: 759px)").matches;
+      const creamDepth = width * 88 / 2500;
+      // Small screens need a full-width tap row clear of the rising curve.
+      const topSpace = narrow ? Math.max(52, menuHeight + 8)
+        : Math.max(52, menuHeight + 8 - creamDepth);
+      const top = narrow ? topSpace - menuHeight
+        : topSpace + creamDepth - menuHeight;
+      header.style.setProperty("--tt-swoosh-topspace", topSpace.toFixed(2) + "px");
+      navShell.style.top = top.toFixed(2) + "px";
+    }
+
+    positionNavigation();
+    const sizeObserver = new ResizeObserver(positionNavigation);
+    sizeObserver.observe(stripe);
+    sizeObserver.observe(navShell);
+    return true;
+  }
+  if (!mountNavigation()) {
+    // The existing header injection creates the stripe at DOMContentLoaded.
+    const stripeObserver = new MutationObserver(() => {
+      if (mountNavigation()) stripeObserver.disconnect();
+    });
+    stripeObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  const guideButtons = Array.from(navShell.querySelectorAll(".tt-guide-nav button[data-panel]"));
+  const infoPanels = Array.from(navShell.querySelectorAll(".tt-info-panel"));
+  const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
+  let pinnedGuide = null;
+  let closeTimer;
+
+  function closeInfoPanels(returnFocus = false){
+    clearTimeout(closeTimer);
+    const activeGuide = guideButtons.find(button => button.getAttribute("aria-expanded") === "true");
+    infoPanels.forEach(panel => {
+      panel.classList.remove("is-open");
+      panel.hidden = true;
+    });
+    guideButtons.forEach(button => button.setAttribute("aria-expanded", "false"));
+    pinnedGuide = null;
+    if (returnFocus && activeGuide) activeGuide.focus();
+  }
+
+  function openInfoPanel(guideButton){
+    clearTimeout(closeTimer);
+    infoPanels.forEach(panel => {
+      const isTarget = panel.id === guideButton.getAttribute("data-panel");
+      panel.classList.toggle("is-open", isTarget);
+      panel.hidden = !isTarget;
+    });
+    guideButtons.forEach(button => button.setAttribute("aria-expanded", String(button === guideButton)));
+  }
+
+  guideButtons.forEach(guideButton => {
+    guideButton.addEventListener("pointerenter", event => {
+      if (event.pointerType === "mouse" && canHover.matches && !pinnedGuide) {
+        openInfoPanel(guideButton);
+      }
+    });
+    guideButton.addEventListener("click", () => {
+      if (pinnedGuide === guideButton) {
+        closeInfoPanels();
+      } else {
+        pinnedGuide = guideButton;
+        openInfoPanel(guideButton);
+      }
+    });
+  });
+
+  navShell.addEventListener("pointerenter", () => clearTimeout(closeTimer));
+  navShell.addEventListener("pointerleave", () => {
+    closeTimer = setTimeout(() => {
+      const panelHasFocus = infoPanels.some(panel => panel.contains(document.activeElement));
+      if (!pinnedGuide && !panelHasFocus) closeInfoPanels();
+    }, 220);
+  });
+  navShell.addEventListener("focusout", () => {
+    setTimeout(() => {
+      if (!navShell.contains(document.activeElement)) closeInfoPanels();
+    }, 0);
+  });
+  navShell.querySelectorAll(".tt-panel-close").forEach(button => {
+    button.addEventListener("click", () => closeInfoPanels(true));
+  });
+  document.addEventListener("pointerdown", event => {
+    if (!navShell.contains(event.target)) closeInfoPanels();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && infoPanels.some(panel => !panel.hidden)) {
+      closeInfoPanels(navShell.contains(document.activeElement));
+    }
+  });
+
+  // Use the saved Squarespace form's own lightbox, validation and delivery.
+  // Keep its native block intact: do not clone the form or submit through our API.
+  const contactButton = $("tt-contact-open");
+  const contactBlockId = "block-yui_3_17_2_1_1789999407933_942";
+  const contactMessageId = "textarea-ac622656-fa8e-493e-8954-3272931761d7-field";
+  const contactHint = $("contactPanel");
+  let contactOpening = false;
+  let contactModal = null;
+  let contactDeadline = 0;
+
+  function nativeContactTrigger(){
+    return $(contactBlockId)?.querySelector("button.lightbox-handle");
+  }
+  function syncContact(){
+    const trigger = nativeContactTrigger();
+    // Hide only the duplicate trigger, and only once this integration is running.
+    // Leave it available to edit in Squarespace and as a no-JavaScript fallback.
+    if (trigger) $(contactBlockId).classList.add("tt-contact-connected");
+    if (contactOpening && !contactModal) {
+      const field = $(contactMessageId);
+      const modal = field?.closest(".sqs-modal-lightbox");
+      if (modal) {
+        contactModal = modal;
+        modal.classList.add("tt-contact-modal");
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-modal", "true");
+        modal.setAttribute("aria-label", "Contact us");
+        modal.querySelector('input[type="email"]')?.focus();
+      } else if (Date.now() > contactDeadline) {
+        contactOpening = false;
+        contactHint.hidden = false;
+        contactHint.classList.add("is-open");
+      }
+    }
+    if (contactModal && !contactModal.isConnected) {
+      contactModal = null;
+      contactOpening = false;
+      contactButton.focus({ preventScroll: true });
+    }
+  }
+  contactButton.addEventListener("click", () => {
+    closeInfoPanels();
+    const trigger = nativeContactTrigger();
+    if (!trigger) {
+      contactHint.hidden = false;
+      contactHint.classList.add("is-open");
+      return;
+    }
+    contactOpening = true;
+    contactDeadline = Date.now() + 10000;
+    trigger.click();
+    syncContact();
+    setTimeout(syncContact, 10050);
+  });
+  const contactObserver = new MutationObserver(syncContact);
+  contactObserver.observe(document.body, { childList: true, subtree: true });
+  syncContact();
+
+  let lastSnapshot = null;
+  let savedShare = null;
+  let sharing = false;
+  const SHARE_API = 'https://neighborhood-matches.vercel.app/api/share';
+
+  async function shareRequest(options, id){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(SHARE_API + (id ? '?id=' + encodeURIComponent(id) : ''), {
+        ...options, signal: controller.signal
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Sharing is temporarily unavailable.');
+      return data;
+    } finally { clearTimeout(timer); }
+  }
+
+  function selectedPriorities(){
+    return priorityEls.filter(el => el.checked).map(el => el.value);
+  }
+
+  priorityEls.forEach(el => {
+    el.addEventListener("change", () => {
+      if (selectedPriorities().length > 3) {
+        el.checked = false;
+        showToast("Choose up to 3.");
+      }
+    });
+  });
+
+  function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+  function setStatus(m,e=false){
+    statusEl.style.color = e ? "#b00020" : "rgba(75,46,31,.70)";
+    statusEl.textContent = m || "";
+  }
+  function setLoading(v){
+    btn.disabled = v;
+    btn.textContent = v ? "finding…" : "let’s go";
+  }
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.style.opacity = "1";
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>{ toastEl.style.opacity = "0"; }, 2200);
+  }
+
+  function chip(text){
+    return `<span class="tt-chip">${esc(text)}</span>`;
+  }
+
+  function formatTitle(item){
+    const parts = [];
+    const m = (item.match||"").trim();
+    let c = (item.city||"").trim();
+    let r = (item.region||"").trim();
+    if (c && r && c.toLowerCase() === r.toLowerCase()) r = "";
+    if (m) parts.push(m);
+    if (c && (!m || !m.toLowerCase().includes(c.toLowerCase()))) parts.push(c);
+    if (r) parts.push(r);
+    return parts.join(", ");
+  }
+
+  function mapSection(item){
+    const q = [item.match,item.city,item.region].filter(Boolean).join(", ");
+    if(!q) return "";
+    const iframe = `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
+    const link   = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+    return `
+      <div class="tt-map-wrap">
+        <div class="tt-h">Map</div>
+        <div class="tt-map-frame">
+          <iframe src="${iframe}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        <a href="${link}" target="_blank" rel="noopener">Open in Google Maps</a>
+      </div>
+    `;
+  }
+
+  function articleSection(news){
+    if(!news||(!news.title&&!news.url))return "";
+    const title = esc(news.title||"Where to stay");
+    const safeUrl = /^https?:\/\//i.test(news.url || '') ? news.url : '#';
+    const url = esc(safeUrl);
+    const snippet = news.snippet ? `<div class="tt-article-snippet">${esc(news.snippet)}</div>` : "";
+    return `
+      <div class="tt-article">
+        <a href="${url}" target="_blank" rel="noopener">
+          <div class="tt-article-title">${title}</div>
+          ${snippet}
+        </a>
+      </div>
+    `;
+  }
+
+  function card(item){
+    const title = esc(formatTitle(item));
+    const blurb = esc(item.blurb||"");
+    const bullets = (item.whatMakesItSpecial||[]).map(b=>`<li>${esc(b)}</li>`).join("");
+    const lms = (item.landmarks||[]).map(l=>`<li><strong>${esc(l.name||"")}</strong> — ${esc(l.why||"")}</li>`).join("");
+    const tags = (Array.isArray(item.tags)?item.tags:[]).slice(0,6).map(chip).join(" ");
+
+    return `
+      <article class="tt-card">
+        <div class="tt-card-title">${title}</div>
+        <p>${blurb}</p>
+
+        <div class="tt-h">What makes it special</div>
+        <ul class="tt-list">${bullets}</ul>
+
+        ${lms ? `<div class="tt-h">Landmarks</div><ul class="tt-list">${lms}</ul>` : ""}
+
+        <div class="tt-chips">${tags}</div>
+
+        ${mapSection(item)}
+        ${articleSection(item.news)}
+      </article>
+    `;
+  }
+
+  function skeleton(){
+    return `
+      <article class="tt-skel">
+        <div class="tt-bar" style="width:60%"></div>
+        <div class="tt-bar" style="width:90%"></div>
+        <div class="tt-bar" style="width:80%"></div>
+      </article>
+    `;
+  }
+
+  function minifyResults(full){
+    return (full||[]).map(r => ({
+      rank: r.rank||0,
+      match: r.match||"",
+      city: r.city||"",
+      region: r.region||"",
+      blurb: r.blurb||"",
+      whatMakesItSpecial: Array.isArray(r.whatMakesItSpecial)?r.whatMakesItSpecial.slice(0,5):[],
+      landmarks: Array.isArray(r.landmarks)?r.landmarks.slice(0,3).map(l=>({name:l.name||"", why:l.why||""})) : [],
+      tags: Array.isArray(r.tags)?r.tags.slice(0,6):[],
+      news: r.news ? { title: r.news.title||"", url: r.news.url||"", snippet: r.news.snippet||"" } : null
+    }));
+  }
+  function buildSnapshot(place, region, results, priorities){
+    return { v:1, place, region, priorities, results: minifyResults(results) };
+  }
+  function encodeSnapshot(obj){
+    try {
+      const json = JSON.stringify(obj);
+      const b64 = btoa(unescape(encodeURIComponent(json)))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
+      return b64;
+    } catch { return ""; }
+  }
+  function decodeSnapshot(b64){
+    try {
+      const pad = b64.length % 4 ? "====".slice(b64.length % 4) : "";
+      const norm = b64.replace(/-/g, "+").replace(/_/g, "/") + pad;
+      const json = decodeURIComponent(escape(atob(norm)));
+      const obj = JSON.parse(json);
+      if (!obj || obj.v !== 1) return null;
+      return obj;
+    } catch { return null; }
+  }
+  function buildFrozenUrl(snapshotB64){
+    const base = location.origin + location.pathname;
+    const params = new URLSearchParams({
+      this: (placeEl.value||"").trim(),
+      that: (regionEl.value||"").trim()
+    });
+    return `${base}?${params.toString()}#d=${snapshotB64}`;
+  }
+
+  async function copyFrozenLink(){
+    if (!lastSnapshot) { showToast("No results to share yet."); return; }
+    if (sharing) return;
+    sharing = true;
+    shareTopLink.disabled = shareBtn.disabled = true;
+    const source = lastSnapshot;
+    const key = JSON.stringify(source);
+    try {
+      if (!savedShare || savedShare.key !== key) {
+        showToast('Saving your results…');
+        const data = await shareRequest({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: key });
+        if (!/^[a-f0-9]{24}$/.test(data.id)) throw new Error('Could not prepare a share link.');
+        savedShare = { key, url: 'https://www.thisplaceisjustlikethatplace.com/?share=' + data.id };
+      }
+      const url = savedShare.url;
+      if (navigator.clipboard && window.isSecureContext) {
+        try { await navigator.clipboard.writeText(url); }
+        catch { window.prompt('Copy this link to share these exact results:', url); return; }
+      } else {
+        window.prompt('Copy this link to share these exact results:', url); return;
+      }
+      showToast("Link copied — send it to a friend.");
+    } catch (error) {
+      setStatus(error.name === 'AbortError' ? 'Sharing timed out. Your results are still here; try Share again.' : error.message, true);
+    } finally {
+      sharing = false;
+      shareTopLink.disabled = shareBtn.disabled = false;
+    }
+  }
+
+  function showShareControls(show){
+    shareTop.style.display = show ? "block" : "none";
+    shareBottom.style.display = show ? "block" : "none";
+  }
+
+  async function callAPI(place, region, priorities){
+    const r = await fetch(API_URL,{
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ place, region, priorities })
+    });
+    const j = await r.json();
+    if(!r.ok || !j.ok) throw new Error(j.error || "Request failed");
+    return j;
+  }
+
+  function render(list){
+    resultsEl.innerHTML = Array.isArray(list)&&list.length
+      ? list.map(card).join("")
+      : `<div style="color: rgba(75,46,31,.75); text-align:center;">No matches found.</div>`;
+  }
+
+  async function runSearch(place, region, { updateUrl=true } = {}){
+    if(!place || !region){ setStatus("Please fill both fields.", true); return; }
+    setStatus(""); setLoading(true);
+    showShareControls(false);
+    resultsEl.innerHTML = skeleton()+skeleton()+skeleton();
+    try {
+      const priorities = selectedPriorities();
+      const data = await callAPI(place, region, priorities);
+      const results = data.results||[];
+      render(results);
+
+      const hasResults = !!results.length;
+      if(!hasResults) setStatus("No results available.", true);
+
+      lastSnapshot = hasResults ? buildSnapshot(place, region, results, priorities) : null;
+      showShareControls(hasResults);
+
+      if (updateUrl) {
+        const base = location.origin + location.pathname;
+        const params = new URLSearchParams({ this: place, that: region });
+        history.replaceState(null, "", `${base}?${params.toString()}`);
+      }
+
+      if (hasResults) {
+        setTimeout(()=>{ document.getElementById("shareBottom")?.scrollIntoView({ behavior:"smooth", block:"end" }); }, 60);
+      }
+    } catch(e){
+      console.error(e);
+      setStatus(e.message||"Something went wrong.", true);
+      lastSnapshot = null;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  btn.addEventListener("click", () => {
+    const place = (placeEl.value||"").trim();
+    const region = (regionEl.value||"").trim();
+    runSearch(place, region, { updateUrl:true });
+  });
+
+  // Enter-to-search
+  [placeEl, regionEl].forEach(inp=>{
+    inp.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") {
+        e.preventDefault();
+        btn.click();
+      }
+    });
+  });
+
+  shareTopLink.addEventListener("click", copyFrozenLink);
+  shareBtn.addEventListener("click",      copyFrozenLink);
+
+  (async function hydrateFromUrl(){
+    const qs = new URLSearchParams(location.search);
+    const shareId = qs.get('share');
+    if (qs.has('share')) {
+      setLoading(true);
+      setStatus('Loading shared results…');
+      try {
+        if (!/^[a-f0-9]{24}$/.test(shareId || '')) throw new Error('This share link is invalid. No new search was run.');
+        const data = await shareRequest({ method: 'GET' }, shareId);
+        const snap = data.snapshot;
+        if (!snap || snap.v !== 1 || !Array.isArray(snap.results) || !snap.results.length) throw new Error('This share link has no saved results.');
+        placeEl.value = snap.place;
+        regionEl.value = snap.region;
+        priorityEls.forEach(el => { el.checked = (snap.priorities || []).includes(el.value); });
+        lastSnapshot = snap;
+        savedShare = { key: JSON.stringify(snap), url: 'https://www.thisplaceisjustlikethatplace.com/?share=' + shareId };
+        render(snap.results);
+        showShareControls(true);
+        setStatus('Saved results — no new search was run.');
+      } catch (error) {
+        setStatus(error.name === 'AbortError' ? 'Loading timed out. Refresh to try again; no new search was run.' : error.message, true);
+      } finally { setLoading(false); }
+      return;
+    }
+    const thisVal = qs.get("this") || "";
+    const thatVal = qs.get("that") || "";
+
+    const hash = location.hash || "";
+    const m = hash.match(/[#&]d=([^&]*)/);
+    const b64 = m ? m[1] : null;
+    const snap = b64 ? decodeSnapshot(b64) : null;
+
+    if (m && (!snap || !Array.isArray(snap.results) || !snap.results.length)) {
+      setStatus('This saved link is incomplete or invalid. No new search was run.', true);
+      return;
+    }
+
+    if (snap && Array.isArray(snap.results) && snap.results.length) {
+      placeEl.value = snap.place || thisVal || "";
+      regionEl.value = snap.region || thatVal || "";
+      const savedPriorities = Array.isArray(snap.priorities) ? snap.priorities : [];
+      priorityEls.forEach(el => { el.checked = savedPriorities.includes(el.value); });
+      lastSnapshot = snap;
+      render(snap.results);
+      showShareControls(true);
+      setStatus("");
+      return;
+    }
+
+    if (thisVal) placeEl.value = thisVal;
+    if (thatVal) regionEl.value = thatVal;
+    if (thisVal && thatVal) {
+      runSearch(thisVal, thatVal, { updateUrl:false });
+    }
+  })();
+})();
+</script>
