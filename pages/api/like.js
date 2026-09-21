@@ -83,8 +83,12 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, place, region, priorities, ...matched, results, version: VERSION });
   } catch (error) {
     // Never expose provider responses, credentials or an unresearched fallback.
-    console.error("Place research failed:", error.name);
     const safeMessages = [
+      "Research did not complete. Please try again.",
+      "Web research was unavailable. Please try again.",
+      "Research returned an unreadable result. Please try again.",
+      "Research returned no sources. Please try again.",
+      "Candidate research was incomplete. Please try again.",
       "Search is busy. Please try again shortly.",
       "Place research is temporarily unavailable. Please try again later.",
       "Place research took too long. Please try again.",
@@ -94,6 +98,8 @@ export default async function handler(req, res) {
     ];
     const message = safeMessages.includes(error.message) ? error.message :
       "We couldn’t research these places reliably right now. Please try again.";
+    // Log only allowlisted diagnostics, never raw model output or credentials.
+    console.error("Place research failed:", message);
     return res.status(error.message.startsWith("Search is busy") ? 429 : 503).json({ ok: false, error: message });
   }
 }
