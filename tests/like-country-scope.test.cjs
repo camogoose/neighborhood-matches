@@ -5,13 +5,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { candidatePrompt, VERSION } = require('../lib/research-match.cjs');
-function harness(failure) {
+function harness(failure, environment = 'production') {
   const calls = [];
   const source = fs.readFileSync(path.join(__dirname, '../pages/api/like.js'), 'utf8')
     .replace('import researchMatch from "../../lib/research-match.cjs";', '')
     .replace('export const config', 'const config')
     .replace('export default async function handler', 'async function handler');
-  const context = { process: { env: { OPENAI_API_KEY: 'test' } }, console: {error(){}},
+  const context = { process: { env: { OPENAI_API_KEY: 'test', VERCEL_ENV: environment } }, console: {error(){}},
     researchMatch: { VERSION, createMatcher: () => async (...args) => {
       calls.push(args);
       if (failure) throw failure;
@@ -63,4 +63,12 @@ test('known research validation failures remain diagnosable without provider out
     const r = await harness(new Error(message)).request({place:'x',region:'y'});
     assert.equal(r.code,503); assert.equal(r.payload.error,message);
   }
+});
+test('detailed research diagnostics are exposed only on preview deployments', async () => {
+  const failure = new Error('Research returned an unreadable result. Please try again.');
+  failure.researchDiagnostic = { stage: 'answer_format', jsonBlocks: 0 };
+  const production = await harness(failure).request({place:'x',region:'y'});
+  assert.equal(production.payload.researchDiagnostic,undefined);
+  const preview = await harness(failure,'preview').request({place:'x',region:'y'});
+  assert.equal(preview.payload.researchDiagnostic.stage,'answer_format');
 });
