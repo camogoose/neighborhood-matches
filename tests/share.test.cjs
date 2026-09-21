@@ -75,3 +75,15 @@ test('HTTP GET serves saved results, misses stay 404; POST returns canonical sho
   const read=await invoke(handler,{method:'GET',query:{id:saved.body.id}});assert.equal(read.code,200);assert.deepEqual(read.body.snapshot,sample());
   assert.equal((await invoke(handler,{method:'GET',query:{id:'0'.repeat(24)}})).code,404);
 });
+test('Marketplace credentials work without exposing secrets or using read-only tokens',async()=>{
+  const env={SHARING_ENABLED:'true',KV_REST_API_URL:'https://test.upstash.io',KV_REST_API_TOKEN:'write-token',KV_REST_API_READ_ONLY_TOKEN:'read-token'};
+  const handler=api(env,async(url,opts)=>{
+    assert.equal(url,env.KV_REST_API_URL);
+    assert.equal(opts.headers.Authorization,'Bearer write-token');
+    return {ok:true,json:async()=>({result:'CREATED'})};
+  });
+  const saved=await invoke(handler,{method:'POST',body:sample()});
+  assert.equal(saved.code,200);assert.equal(JSON.stringify(saved.body).includes('write-token'),false);
+  assert.equal((await invoke(api({...env,SHARING_ENABLED:'false'}),{method:'POST',body:sample()})).code,503);
+  assert.equal((await invoke(api({...env,KV_REST_API_TOKEN:undefined}),{method:'POST',body:sample()})).code,503);
+});
