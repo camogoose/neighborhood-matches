@@ -70,6 +70,19 @@ test('cache coalesces requests, expires, bounds size and retries after failure',
   assert.equal(await cache('b',10,make),3);
   await cache('c',10,make);assert.equal(await cache('a',10,make),5);
 });
+test('cited notes plus fenced JSON preserve annotation-only source metadata', () => {
+  const p=profile();
+  const response=envelope(p);
+  delete response.output[0].action.sources;
+  response.output[1].content[0]={type:'output_text',
+    text:'Evidence notes with native citations.\n```json\n'+JSON.stringify(p)+'\n```',
+    annotations:urls.map(url=>({type:'url_citation',url,title:'Cited source'}))};
+  const parsed=unpack(response);
+  assert.equal(validateProfile(parsed).name,p.name);
+  assert.equal(parsed.sources.size,2);
+  response.output[1].content[0].annotations=[];
+  assert.throws(()=>unpack(response),/no sources/, 'JSON URLs alone must never count as evidence');
+});
 test('pipeline searches source first, then researched candidates, and caches repeat searches', async () => {
   const p=profile();const calls=[];
   const matcher=createMatcher({env:{OPENAI_API_KEY:'test'},fetchImpl:async(url,options)=>{
