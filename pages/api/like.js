@@ -1,11 +1,14 @@
 // pages/api/like.js
-// v0.6.1 — country-wide candidate consideration; rank by fit, not geographic variety
-// Excludes newsy/negative items. Adds gmaps link + OSM static map (no API key).
+// v0.6.2 — identity-first matching with one budgeted model call and reusable results
+// No paid web research. Existing result-card shape and Google Maps links retained.
 // Runtime: Node.js (not Edge)
 
 import OpenAI from "openai";
+import budgetMatch from "../../lib/budget-match.cjs";
+const { createResultCache, cacheKey, normalizeResults } = budgetMatch;
+const cached = createResultCache();
 
-export const config = { runtime: "nodejs", api: { bodyParser: true } };
+export const config = { runtime: "nodejs", api: { bodyParser: { sizeLimit: "4kb" } } };
 
 // ---- CORS ----
 function setCors(req, res) {
@@ -26,17 +29,12 @@ function setCors(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai;
+function client() {
+  return openai ||= new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 0, timeout: 25000 });
+}
 
 // ---- helpers ----
-function pick(s, re) { const m = re.exec(s); return m ? m[1].trim() : ""; }
-function clean(str) {
-  return String(str || "")
-    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
-}
-function stripTags(html) { return String(html || "").replace(/<[^>]+>/g, ""); }
 function readInput(value, maxLength = 120) {
   if (typeof value !== "string") return "";
   return value.trim().slice(0, maxLength);
@@ -60,92 +58,6 @@ function readPriorities(value) {
   )].slice(0, 3);
 }
 
-// -------------
-// News (roundups)
-// -------------
-const POSITIVE_PHRASES = [
-  "where to stay","best hotels","top hotels","hotel guide",
-  "best places to stay","best areas to stay","best neighborhoods to stay"
-];
-const POSITIVE_SITES = [
-  "site:cntraveler.com","site:travelandleisure.com","site:afar.com",
-  "site:lonelyplanet.com","site:timeout.com","site:nytimes.com",
-  "site:planetware.com","site:theculturetrip.com"
-].join(" OR ");
-const NEGATIVE_TERMS = [
-  "sue","sues","lawsuit","legal","court","trial",
-  "crash","crashes","collision","killed","dies","shooting",
-  "police","arrest","homicide","crime","assault",
-  "foreclosure","bankruptcy","closure","closing","demolition","eviction",
-  "scandal","protest","boycott","strike","fraud","raid","fire","explosion",
-  "merger","acquisition","deal","bought","purchased"
-];
-function buildNewsQuery(q) {
-  const positives =
-    `(intitle:"where to stay" OR intitle:"best hotels" OR intitle:"top hotels" OR ` +
-    `intitle:"best places to stay" OR intitle:"best areas to stay" OR intitle:"best neighborhoods to stay" OR "hotel guide")`;
-  const negatives = NEGATIVE_TERMS.map(x => `-${x}`).join(" ");
-  return `${q} ${positives} (${POSITIVE_SITES}) ${negatives}`;
-}
-async function fetchTravelNews(q) {
-  const url = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=" +
-    encodeURIComponent(buildNewsQuery(q));
-  try {
-    const r = await fetch(url);
-    const xml = await r.text();
-    const items = [];
-    const re = /<item>([\s\S]*?)<\/item>/gi;
-    let m; while ((m = re.exec(xml)) && items.length < 12) items.push(m[1]);
-
-    const hasNegative = (text) =>
-      NEGATIVE_TERMS.some(bad => new RegExp(`\\b${bad}\\b`, "i").test(text));
-    const looksLikeRoundup = (title, desc) => {
-      const inTitle = POSITIVE_PHRASES.some(p => new RegExp(p, "i").test(title));
-      const inDesc  = POSITIVE_PHRASES.some(p => new RegExp(p, "i").test(desc));
-      return (inTitle || inDesc);
-    };
-
-    for (const raw of items) {
-      const title = clean(pick(raw, /<title>([\s\S]*?)<\/title>/i));
-      const link  = clean(pick(raw, /<link>([\s\S]*?)<\/link>/i));
-      const descH = clean(pick(raw, /<description>([\s\S]*?)<\/description>/i));
-      const desc  = stripTags(descH);
-      const haystack = `${title} ${desc}`;
-      if (!looksLikeRoundup(title, desc)) continue;
-      if (hasNegative(haystack)) continue;
-      return {
-        title: title || "",
-        url: link || "",
-        image: "",
-        snippet: desc.slice(0, 200) + (desc.length > 200 ? "…" : "")
-      };
-    }
-    return null;
-  } catch { return null; }
-}
-
-// -------------
-// Geocode + static map (no key)
-// -------------
-async function geocode(query) {
-  const u = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
-            encodeURIComponent(query);
-  try {
-    const r = await fetch(u, {
-      headers: { "User-Agent": "thisplaceisjustlikethatplace/1.0 (+https://thisplaceisjustlikethatplace.com)" }
-    });
-    const arr = await r.json();
-    if (!Array.isArray(arr) || !arr.length) return null;
-    const { lat, lon } = arr[0];
-    const latNum = parseFloat(lat), lonNum = parseFloat(lon);
-    if (Number.isNaN(latNum) || Number.isNaN(lonNum)) return null;
-    return { lat: latNum, lon: lonNum };
-  } catch { return null; }
-}
-function staticMap(lat, lon) {
-  // Courtesy OSM staticmap — fine for light use
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=13&size=600x300&markers=${lat},${lon},lightblue1`;
-}
 function gmapsLink(q) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
@@ -155,15 +67,16 @@ function gmapsLink(q) {
 // -------------
 export default async function handler(req, res) {
   setCors(req, res);
+  res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   if (req.method === "GET") {
     return res.status(200).json({
       ok: true,
       service: "This Is Just Like That",
-      version: "0.6.1",
+      version: "0.6.2",
       sections: ["resultsOnly"],
-      news_filter: "hotel roundups only",
+      paid_web_research: false,
       mode: process.env.OPENAI_API_KEY ? "openai" : "missing_api_key",
     });
   }
@@ -183,16 +96,18 @@ export default async function handler(req, res) {
         error: 'Provide non-empty text values for "place" and "region"'
       });
     }
+    if (process.env.MATCHING_PAUSED === "true") return res.status(503).json({ ok: false, error: "Search is temporarily paused." });
     if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
     }
 
+    const enriched = await cached(cacheKey(place, region, priorities), async () => {
     const prompt = `
 You are a neighborhood-matching engine.
 
 Input:
-- source place: "${place}"
-- scope/region: "${region}"
+- source place: ${JSON.stringify(place)}
+- scope/region: ${JSON.stringify(region)}
 - visitor priorities: ${priorities.length ? priorities.join(", ") : "none supplied; infer a balanced profile"}
 
 Rules:
@@ -201,25 +116,38 @@ Rules:
   means the whole country, not just its capital, largest city or best-known visitor
   destinations. Consider plausible candidates across its regions, secondary cities,
   smaller cities and towns wherever their character fits the source.
-- Build a broad candidate shortlist before selecting the final three. For a country,
+- Build a broad candidate shortlist before selecting up to three results. For a country,
   compare plausible candidates from multiple cities where available; do not stop
   after finding three plausible matches in the first city. Do not invent places or
   claim to have exhaustively searched or verified every place in the country.
 - If the destination is a city, focus the candidate pool within that city instead.
   For other specified areas, use that area's scope. Do not silently substitute a
   nearby country or a better-known destination for the requested scope.
-- First identify the source place's geographic level: block/corridor, neighborhood,
-  district/borough, or city. Match at the SAME level whenever the target region has one.
+- FIRST identify the source's defining identity: hamlet, village, small town, rural area,
+  suburb, city, neighborhood or corridor; its density, natural setting, pace, relationship
+  to nearby major cities and the main reasons people visit. Then choose candidates.
+- Order of importance: defining scale/setting and signature activities FIRST, relationship
+  to nearby cities and pace NEXT, then visitor priorities and supporting culture/shops.
+  Weight a truly defining activity highly; do not treat incidental availability as identity.
+- Match a small river town with settlements offering a comparable river/outdoor experience,
+  not a busy capital neighborhood merely because both have galleries or restaurants.
+  A wind-sports destination needs a meaningful wind-sports match, not just generic water.
+- Distinguish a rural weekend escape from an urban neighborhood, commuter suburb or remote
+  destination. Use qualitative proximity unless you know reliable travel time and mode.
+- Match the SAME geographic level where possible. If the destination is explicitly a city,
+  keep that scope and disclose when no close equivalent to the source's scale exists.
+- Use your existing knowledge, not imaginary research. Do not claim you looked things up,
+  verified current conditions or consulted sources. Do not invent exact statistics,
+  activity significance, businesses or travel times. Omit uncertain details.
 - A neighborhood-sized source must return specific neighborhoods, not a whole city,
   broad side of a city, or large administrative district. Use the smallest commonly
   recognized local name that accurately describes the match.
-- Compare candidates across these dimensions: street energy, density/walkability,
-  nightlife rhythm, independent food and retail, arts/creative culture, architecture,
-  tourism level, relative price, and grit-versus-polish.
+- Only AFTER defining identity fits, compare walkability, food, arts, architecture,
+  tourism, relative price and grit-versus-polish. Nightlife is not mandatory for quiet towns.
 - When visitor priorities are supplied, give those dimensions extra weight without
   ignoring geographic scale or inventing a match that does not fit the source place.
 - Strong shared character matters more than fame or superficial demographic similarity.
-- Rank the final three distinct places by overall match quality, strongest first.
+- Rank the selected distinct places by overall match quality, strongest first.
   Geographic diversity is NOT a ranking goal or a quota: all three may be in the
   same city if they are the strongest matches after broader consideration. Never
   replace a stronger match with a weaker one just to include another city or region.
@@ -230,22 +158,22 @@ Rules:
   traffic alone do not make a tourist retail corridor equivalent to a lived-in arts
   neighborhood. Weigh tourism, independent versus chain businesses, street life and
   the visitor's priorities together. Do not recommend a poor fit merely to fill a slot;
-  if only weaker alternatives are available, say so plainly in their blurbs.
+  return fewer than three rather than knowingly filling a slot with a poor fit.
 - In each blurb, name 2–3 concrete similarities and one useful difference or caveat.
 - Avoid vague claims such as "similar vibe" unless the specific shared traits follow.
 - For region = "United States" (nationwide), include the state as "State, USA" in "region".
 - Return strictly valid JSON ONLY.
 
-Return EXACTLY 3 candidates:
+Return up to 3 genuinely plausible candidates, strongest first. Return an empty results array if none fit. Do not force three:
 
 {
   "results": [
     {
       "rank": 1,
-      "match": "Neighborhood or area",
+      "match": "Specific settlement, neighborhood or area",
       "city": "City",
       "region": "Region/State/Country",
-      "blurb": "Why this matches ${place} in 1–2 sentences.",
+      "blurb": "Two concise sentences: defining similarities first, then the main difference.",
       "whatMakesItSpecial": [
         "Bullet 1","Bullet 2","Bullet 3","Bullet 4","Bullet 5"
       ],
@@ -259,60 +187,36 @@ Return EXACTLY 3 candidates:
 }
 `;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await client().chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.6,
+      temperature: 0.3,
+      max_tokens: 2200,
+      response_format: { type: "json_object" },
       messages: [
         { role: "system", content: "You return strictly valid JSON for a neighborhood-matching API. No commentary." },
         { role: "user", content: prompt },
       ],
     });
 
-    let text = completion.choices?.[0]?.message?.content || "{}";
-    text = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "");
-    let parsed; try { parsed = JSON.parse(text); } catch { parsed = {}; }
-
-    const base = Array.isArray(parsed?.results) ? parsed.results.slice(0, 3) : [];
-    const normalized = base.map((r, i) => ({
-      rank: typeof r.rank === "number" ? r.rank : i + 1,
-      match: r.match || r.neighborhood || "Unknown",
-      city: r.city || "",
-      region: r.region || String(region),
-      blurb: r.blurb || "",
-      whatMakesItSpecial: Array.isArray(r.whatMakesItSpecial) ? r.whatMakesItSpecial.slice(0,5) : [],
-      landmarks: Array.isArray(r.landmarks) ? r.landmarks.slice(0,3).map(l => ({
-        name: String(l?.name || "").slice(0,80),
-        why: String(l?.why || "").slice(0,160)
-      })) : [],
-      tags: Array.isArray(r.tags) ? r.tags.slice(0,6) : [],
-      score: typeof r.score === "number" ? r.score : 0.75,
-      source: "openai",
+    if (completion.choices?.[0]?.finish_reason !== "stop") throw new Error("Incomplete response");
+    const parsed = JSON.parse(completion.choices?.[0]?.message?.content || "");
+    const normalized = normalizeResults(parsed);
+    return normalized.map(item => ({
+      ...item, news: null,
+      map: { lat: null, lon: null, image: "",
+        gmaps: gmapsLink([item.match, item.city, item.region].filter(Boolean).join(", ")) }
     }));
-
-    // Attach roundup article + map
-    const enriched = await Promise.all(normalized.map(async (item) => {
-      const query = `${item.match} ${item.city} ${item.region}`;
-      const [news, geo] = await Promise.all([
-        fetchTravelNews(query),
-        geocode(query)
-      ]);
-      const map = geo ? {
-        lat: geo.lat, lon: geo.lon,
-        image: staticMap(geo.lat, geo.lon),
-        gmaps: gmapsLink(query)
-      } : { lat: null, lon: null, image: "", gmaps: gmapsLink(query) };
-      return { ...item, news: news || null, map };
-    }));
+    });
 
     return res.status(200).json({
       ok: true,
       place, region, priorities,
       results: enriched,
-      version: "0.6.1"
+      version: "0.6.2"
     });
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ ok: false, error: "Server error", detail: String(err?.message || err) });
+    const busy = err?.code === "BUSY";
+    return res.status(busy ? 429 : 503).json({ ok: false, error: busy ? "Search is busy. Please try again shortly." : "Search could not complete. Please try again later." });
   }
 }
