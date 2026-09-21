@@ -2,6 +2,12 @@ import shareStore from '../../lib/share-store.cjs';
 const { snapshot, createShareStore, ID_PATTERN } = shareStore;
 export const config = { api: { bodyParser: { sizeLimit: '24kb' } } };
 const origins = new Set(['https://thisplaceisjustlikethatplace.com', 'https://www.thisplaceisjustlikethatplace.com']);
+// Only this project's Vercel-provided preview hosts, never arbitrary request hosts.
+if (process.env.VERCEL_ENV === 'preview') {
+  for (const host of [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]) {
+    if (host && /^[a-z0-9-]+\.vercel\.app$/.test(host)) origins.add('https://' + host);
+  }
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
