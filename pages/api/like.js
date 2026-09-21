@@ -37,6 +37,28 @@ function clean(str) {
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
 }
 function stripTags(html) { return String(html || "").replace(/<[^>]+>/g, ""); }
+function readInput(value, maxLength = 120) {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, maxLength);
+}
+const MATCH_PRIORITIES = new Set([
+  "food and restaurants",
+  "nightlife",
+  "arts and creative scene",
+  "architecture and atmosphere",
+  "local and less touristy",
+  "walkability",
+  "affordable",
+  "gritty",
+  "polished",
+]);
+function readPriorities(value) {
+  const values = Array.isArray(value) ? value : [];
+  return [...new Set(values
+    .map((item) => readInput(item, 50).toLowerCase())
+    .filter((item) => MATCH_PRIORITIES.has(item))
+  )].slice(0, 3);
+}
 
 // -------------
 // News (roundups)
@@ -152,9 +174,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { place, region } = req.body || {};
+    const place = readInput(req.body?.place);
+    const region = readInput(req.body?.region);
+    const priorities = readPriorities(req.body?.priorities);
     if (!place || !region) {
-      return res.status(400).json({ ok: false, error: 'Missing JSON: { "place": "...", "region": "..." }' });
+      return res.status(400).json({
+        ok: false,
+        error: 'Provide non-empty text values for "place" and "region"'
+      });
     }
     if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({ ok: false, error: "OPENAI_API_KEY is not set" });
@@ -166,10 +193,25 @@ You are a neighborhood-matching engine.
 Input:
 - source place: "${place}"
 - scope/region: "${region}"
+- visitor priorities: ${priorities.length ? priorities.join(", ") : "none supplied; infer a balanced profile"}
 
 Rules:
-- Prefer neighborhoods (not whole cities) when possible.
-- Respect scale similarity (population/density/foot-traffic) if known.
+- First identify the source place's geographic level: block/corridor, neighborhood,
+  district/borough, or city. Match at the SAME level whenever the target region has one.
+- A neighborhood-sized source must return specific neighborhoods, not a whole city,
+  broad side of a city, or large administrative district. Use the smallest commonly
+  recognized local name that accurately describes the match.
+- Compare candidates across these dimensions: street energy, density/walkability,
+  nightlife rhythm, independent food and retail, arts/creative culture, architecture,
+  tourism level, relative price, and grit-versus-polish.
+- When visitor priorities are supplied, give those dimensions extra weight without
+  ignoring geographic scale or inventing a match that does not fit the source place.
+- Strong shared character matters more than fame or superficial demographic similarity.
+- Do not choose three near-duplicates. Candidate 1 should be the closest overall match;
+  candidates 2 and 3 should be equally specific alternatives that emphasize different
+  strong facets of the source place.
+- In each blurb, name 2–3 concrete similarities and one useful difference or caveat.
+- Avoid vague claims such as "similar vibe" unless the specific shared traits follow.
 - For region = "United States" (nationwide), include the state as "State, USA" in "region".
 - Return strictly valid JSON ONLY.
 
@@ -243,7 +285,7 @@ Return EXACTLY 3 candidates:
 
     return res.status(200).json({
       ok: true,
-      place, region,
+      place, region, priorities,
       results: enriched,
       version: "0.6.0"
     });
