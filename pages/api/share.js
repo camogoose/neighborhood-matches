@@ -22,10 +22,15 @@ export default async function handler(req, res) {
     if (req.method === 'GET' && (typeof value !== 'string' || !ID_PATTERN.test(value))) {
       return res.status(400).json({ ok: false, error: 'Invalid share link.' });
     }
-    if (process.env.SHARING_ENABLED !== 'true' || !process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    // Marketplace-created databases use KV_REST_API_*; direct Upstash uses UPSTASH_*.
+    // Select a complete pair, never mix credentials from two integrations.
+    const direct = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
+    const url = direct ? process.env.UPSTASH_REDIS_REST_URL : process.env.KV_REST_API_URL;
+    const token = direct ? process.env.UPSTASH_REDIS_REST_TOKEN : process.env.KV_REST_API_TOKEN;
+    if (process.env.SHARING_ENABLED !== 'true' || !url || !token) {
       return res.status(503).json({ ok: false, error: 'Short-link sharing is not available yet.' });
     }
-    const store = createShareStore({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN });
+    const store = createShareStore({ url, token });
     if (req.method === 'POST') {
       const id = await store.save(value);
       return res.status(200).json({ ok: true, id, url: `https://www.thisplaceisjustlikethatplace.com/?share=${id}` });
