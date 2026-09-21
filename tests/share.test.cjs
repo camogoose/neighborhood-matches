@@ -87,3 +87,9 @@ test('Marketplace credentials work without exposing secrets or using read-only t
   assert.equal((await invoke(api({...env,SHARING_ENABLED:'false'}),{method:'POST',body:sample()})).code,503);
   assert.equal((await invoke(api({...env,KV_REST_API_TOKEN:undefined}),{method:'POST',body:sample()})).code,503);
 });
+test('only Vercel-provided preview origins are allowed in previews',async()=>{
+ const env={VERCEL_ENV:'preview',VERCEL_URL:'example.vercel.app',VERCEL_BRANCH_URL:'example-branch.vercel.app'};
+ for(const origin of ['https://example.vercel.app','https://example-branch.vercel.app']) assert.equal((await invoke(api(env),{method:'OPTIONS',headers:{origin}})).code,204);
+ assert.equal((await invoke(api(env),{method:'OPTIONS',headers:{origin:'https://other.vercel.app'}})).code,403);
+ assert.equal((await invoke(api({...env,VERCEL_ENV:'production'}),{method:'OPTIONS',headers:{origin:'https://example.vercel.app'}})).code,403);
+});
