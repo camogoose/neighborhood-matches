@@ -53,7 +53,7 @@ export default function ResearchPreview() {
     <p>Try Narrowsburg, NY; Hood River, Oregon; or Lower East Side, New York. No search runs until you press the button. Research uses the preview’s paid API connection.</p>
     <div role="status" aria-live="polite">{busy ? 'Researching the place and comparing candidates. This may take up to two minutes.' : seconds !== null ? `Finished in ${seconds} seconds.` : ''}</div>
     {error && <p role="alert">{error}</p>}
-    {diagnostic && <section><h2>Preview diagnostics</h2><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{JSON.stringify(diagnostic,null,2)}</pre></section>}
+    {diagnostic && <section><h2>Preview diagnostics</h2>{JSON.stringify(diagnostic,null,2).split('\n').map((line,i) => <div key={i} style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',fontFamily:'monospace',fontSize:12}}>{line}</div>)}</section>}
     {data && <>
       <p>Backend version: {data.version}</p>
       {data.research?.profile && <section>
