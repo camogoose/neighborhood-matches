@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Short-link storage check</title>
+<h1>Short-link storage check</h1><p>Uses one synthetic saved result, no AI searches. Saves and reopens it, including duplicate simultaneous saves.</p>
+<button id="run">Test save and reopen</button><pre id="result">Not run</pre>
+<script>
+document.getElementById('run').onclick=async()=>{
+ const button=document.getElementById('run'),out=document.getElementById('result');button.disabled=true;out.textContent='Testing…';
+ const snapshot={v:1,place:'Sharing system test',region:'Test only',priorities:[],results:[{rank:1,match:'Synthetic test — not a recommendation',city:'Test',region:'Test',blurb:'Storage verification: cafés & river walks.',whatMakesItSpecial:['No AI call'],landmarks:[],tags:[],news:null}]};
+ async function request(path,options){const r=await fetch(path,options);const data=await r.json();if(!r.ok)throw Error(data.error||r.status);return data;}
+ try{
+ const save=()=>request('/api/share',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot)});
+ const first=await save(),copies=await Promise.all([save(),save()]);
+ const read=await request('/api/share?id='+first.id);
+ if(copies.some(x=>x.id!==first.id)||JSON.stringify(read.snapshot)!==JSON.stringify(snapshot))throw Error('Round-trip mismatch');
+ out.textContent='PASS: saved, reopened exact text, and duplicate concurrent saves returned the same ID. No AI searches.\nID: '+first.id;
+ }catch(e){out.textContent='FAILED: '+e.message;}finally{button.disabled=false;}
+};
+</script></html>
