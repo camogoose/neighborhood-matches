@@ -54,3 +54,13 @@ test('research failure returns a safe error, not old unsourced results', async (
   assert.equal(r.code,503);assert(!JSON.stringify(r.payload).includes('secret-provider-debug'));
   assert.equal(r.payload.ok,false);assert.equal(r.payload.results,undefined);
 });
+test('known research validation failures remain diagnosable without provider output', async () => {
+  for (const message of ['Research did not complete. Please try again.',
+    'Web research was unavailable. Please try again.',
+    'Research returned an unreadable result. Please try again.',
+    'Research returned no sources. Please try again.',
+    'Candidate research was incomplete. Please try again.']) {
+    const r = await harness(new Error(message)).request({place:'x',region:'y'});
+    assert.equal(r.code,503); assert.equal(r.payload.error,message);
+  }
+});
