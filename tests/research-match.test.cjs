@@ -83,6 +83,14 @@ test('cited notes plus fenced JSON preserve annotation-only source metadata', ()
   response.output[1].content[0].annotations=[];
   assert.throws(()=>unpack(response),/no sources/, 'JSON URLs alone must never count as evidence');
 });
+test('tracking parameters on native citations do not discard valid profile evidence', () => {
+  const p=profile();const response=envelope(p);
+  delete response.output[0].action.sources;
+  response.output[1].content[0].annotations=urls.map(url=>({type:'url_citation',url:url+'?utm_source=openai',title:'Evidence'}));
+  assert.equal(validateProfile(unpack(response)).features.length,3);
+  assert.equal(safeUrl('https://example.org/page?id=7&utm_source=openai#section'), 'https://example.org/page?id=7');
+  assert.notEqual(safeUrl('https://example.org/page?id=7'), safeUrl('https://example.org/page?id=8'));
+});
 test('pipeline searches source first, then researched candidates, and caches repeat searches', async () => {
   const p=profile();const calls=[];
   const matcher=createMatcher({env:{OPENAI_API_KEY:'test'},fetchImpl:async(url,options)=>{
