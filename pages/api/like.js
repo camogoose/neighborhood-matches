@@ -100,6 +100,8 @@ export default async function handler(req, res) {
       "We couldn’t research these places reliably right now. Please try again.";
     // Log only allowlisted diagnostics, never raw model output or credentials.
     console.error("Place research failed:", message);
-    return res.status(error.message.startsWith("Search is busy") ? 429 : 503).json({ ok: false, error: message });
+    return res.status(error.message.startsWith("Search is busy") ? 429 : 503).json({ ok: false, error: message,
+      ...(process.env.VERCEL_ENV === 'preview' && error.researchDiagnostic ?
+        { researchDiagnostic: error.researchDiagnostic } : {}) });
   }
 }
