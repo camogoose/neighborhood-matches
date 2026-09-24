@@ -563,6 +563,56 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
     #tt-nav-shell .tt-info-panel{ padding: 18px; }
     #like-that-ish .tt-priority-heading{ flex-wrap: wrap; }
   }
+/* Approved photo-led cards; existing site header and API flows retained. */
+#like-that-ish{box-sizing:border-box;max-width:1040px;border-radius:0;box-shadow:none;padding:28px 20px 48px;}
+#like-that-ish *,#like-that-ish *::before,#like-that-ish *::after{box-sizing:border-box;}
+#like-that-ish [hidden]{display:none!important;}
+#like-that-ish .tt-title{font-size:clamp(32px,5vw,49px);max-width:800px;}
+#like-that-ish .tt-sub{font:17px/1.6 Arial,sans-serif;max-width:760px;}
+#like-that-ish #results{grid-template-columns:minmax(0,1fr);gap:24px;scroll-margin-top:20px;}
+#like-that-ish .tt-card{display:grid;grid-template-columns:minmax(0,1fr);padding:0;overflow:hidden;border:1px solid #e3d9cb;box-shadow:0 5px 14px #4b2e1f0c;border-radius:20px;}
+#like-that-ish .tt-media{margin:0;position:relative;background:#eee4d4;min-width:0;}
+#like-that-ish .tt-photo{display:block;width:100%;height:230px;object-fit:cover;}
+#like-that-ish .tt-photo-fallback{height:230px;display:grid;place-content:center;text-align:center;padding:24px;background:linear-gradient(135deg,#e8d9c4,#f8f2e9);font:16px/1.5 Arial,sans-serif;}
+#like-that-ish .tt-credit{padding:8px 12px;font:11px/1.5 Arial,sans-serif;color:#604a3c;}
+#like-that-ish .tt-credit a{font-weight:400;color:inherit;}
+#like-that-ish .tt-rank{position:absolute;top:16px;left:16px;padding:8px 14px;border-radius:30px;background:#4b2e1f;color:#fff8ef;font:600 13px Arial,sans-serif;}
+#like-that-ish .tt-card-body{min-width:0;padding:22px;}
+#like-that-ish .tt-card-title{font-size:27px;line-height:1.12;overflow-wrap:anywhere;margin:0 0 6px;}
+#like-that-ish .tt-location{font:14px/1.4 Arial,sans-serif;margin-bottom:14px;}
+#like-that-ish .tt-intro{font:16px/1.55 Arial,sans-serif;}
+#like-that-ish .tt-chips{margin:16px 0 20px;gap:7px;}
+#like-that-ish .tt-chip{font:12px/1.4 Arial,sans-serif;padding:5px 10px;}
+#like-that-ish .tt-disclosure{border-top:1px solid #e8dfd2;}
+#like-that-ish .tt-disclosure summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:50px;cursor:pointer;list-style:none;font:600 14px/1.4 Arial,sans-serif;}
+#like-that-ish .tt-disclosure summary::-webkit-details-marker{display:none;}
+#like-that-ish .tt-chevron{width:9px;height:9px;border-right:1.5px solid;border-bottom:1.5px solid;transform:rotate(45deg);margin-right:5px;flex-shrink:0;}
+#like-that-ish .tt-disclosure[open] > summary .tt-chevron{transform:rotate(225deg);}
+#like-that-ish .tt-detail-body{font:14px/1.6 Arial,sans-serif;padding:0 0 18px;}
+#like-that-ish .tt-detail-body p{line-height:1.6;}
+#like-that-ish .tt-detail-body .tt-h{font-size:13px;}
+#like-that-ish .tt-map-frame iframe{height:220px;}
+#like-that-ish summary:focus-visible,#like-that-ish button:focus-visible,#like-that-ish a:focus-visible{outline:3px solid #a64e18;outline-offset:4px;}
+#like-that-ish .tt-results-actions{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:24px 0 18px;}
+#like-that-ish .tt-outline{min-height:44px;padding:10px 18px;border:1px solid #b05a25;border-radius:30px;background:transparent;color:#713718;font:600 14px Arial,sans-serif;cursor:pointer;}
+@media(min-width:760px){
+ #like-that-ish{padding:28px 30px 56px;}
+ #like-that-ish .tt-card{grid-template-columns:minmax(0,40%) minmax(0,60%);}
+ #like-that-ish .tt-media{display:flex;flex-direction:column;}
+ #like-that-ish .tt-photo{height:360px;flex:1;min-height:320px;max-height:460px;}
+ #like-that-ish .tt-photo-fallback{height:360px;}
+ #like-that-ish .tt-card-body{padding:26px;}
+}
+@media(prefers-reduced-motion:reduce){#like-that-ish *{scroll-behavior:auto!important;transition:none!important;}}
+
+/* No-photo cards keep every detail without a large empty image column. */
+#like-that-ish .tt-card.tt-no-photo{grid-template-columns:minmax(0,1fr);}
+#like-that-ish .tt-no-photo .tt-media{display:block;min-height:72px;background:#eee4d4;border-top:5px solid #d97a2b;}
+#like-that-ish .tt-no-photo .tt-photo-fallback{height:auto;min-height:72px;padding:20px 18px 20px 132px;text-align:left;display:flex;align-items:center;font:13px/1.5 Arial,sans-serif;background:none;}
+#like-that-ish .tt-no-photo .tt-rank{top:20px;}
+#like-that-ish .tt-no-photo .tt-credit{display:none;}
+#like-that-ish #subHeadline:empty{display:none;}
+
 </style>
 
 <div id="tt-nav-shell">
@@ -921,7 +971,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
       <div class="tt-map-wrap">
         <div class="tt-h">Map</div>
         <div class="tt-map-frame">
-          <iframe src="${iframe}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <iframe data-src="${iframe}" title="Map of ${esc(q)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
         <a href="${link}" target="_blank" rel="noopener">Open in Google Maps</a>
       </div>
@@ -944,29 +994,53 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
     `;
   }
 
-  function card(item){
-    const title = esc(formatTitle(item));
-    const blurb = esc(item.blurb||"");
-    const bullets = (item.whatMakesItSpecial||[]).map(b=>`<li>${esc(b)}</li>`).join("");
-    const lms = (item.landmarks||[]).map(l=>`<li><strong>${esc(l.name||"")}</strong> — ${esc(l.why||"")}</li>`).join("");
-    const tags = (Array.isArray(item.tags)?item.tags:[]).slice(0,6).map(chip).join(" ");
-
-    return `
-      <article class="tt-card">
-        <div class="tt-card-title">${title}</div>
-        <p>${blurb}</p>
-
-        <div class="tt-h">What makes it special</div>
-        <ul class="tt-list">${bullets}</ul>
-
-        ${lms ? `<div class="tt-h">Landmarks</div><ul class="tt-list">${lms}</ul>` : ""}
-
-        <div class="tt-chips">${tags}</div>
-
-        ${mapSection(item)}
-        ${articleSection(item.news)}
-      </article>
-    `;
+  const previewPhotos = [{"match":"Williamsburg","city":"Brooklyn","region":"New York, USA","file":"Domino Park, Brooklyn - 20220615 - 01 - view northward featuring skylines.jpg","author":"Andre Carrotflower","license":"4.0","alt":"Waterfront promenade at Domino Park in Williamsburg, Brooklyn"},{"match":"Ithaca","city":"Ithaca","region":"New York, USA","file":"Ithaca Falls.JPG","author":"Stilfehler at wikivoyage shared","license":"1.0","alt":"Ithaca Falls in Ithaca, New York"},{"match":"Hudson","city":"Hudson","region":"New York, USA","file":"Warren Street west view, Hudson, NY.jpg","author":"Daniel Case","license":"3.0","alt":"Looking west along Warren Street in Hudson, New York"},{"match":"Astoria","city":"New York","region":"New York, USA","file":"Astoria Park, Queens.jpg","author":"Rsmn","license":"CC0","alt":"Trees and paths in Astoria Park, Queens (2016)","src":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Astoria_Park%2C_Queens.jpg/960px-Astoria_Park%2C_Queens.jpg"},{"match":"Greenpoint","city":"New York","region":"New York, USA","file":"Greenpoint, Brooklyn 2009.JPG","author":"Jleon; crop by Beyond My Ken","license":"3.0","alt":"Manhattan Avenue streetscape in Greenpoint, Brooklyn (2009)","src":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Greenpoint%2C_Brooklyn_2009.JPG/960px-Greenpoint%2C_Brooklyn_2009.JPG"}];
+  function detail(label, body){
+    return '<details class="tt-disclosure"><summary>'+esc(label)+'<span class="tt-chevron" aria-hidden="true"></span></summary><div class="tt-detail-body">'+body+'</div></details>';
+  }
+  // Bundled, credited photographs: these illustrate character, never location.
+  const themePhotos = {
+    river: ['Close up water shot.jpg','Hall2.0','by-sa/4.0','Flowing river water'],
+    trees: ['Beech forest, Ehrenbach, foliage against sun.jpg','Gerda Arendt','CC0','Sunlight through woodland trees'],
+    coast: ['Ocean beach at low tide against the sun.jpg','Brocken Inaglory','by-sa/3.0','Waves breaking at the shore'],
+    coffee: ['Cup of coffee in Café Butter - Prenzlauer Berg, Berlin.jpg','Edward','CC0','A close-up of a cup of coffee'],
+    architecture: ['Brick facade with a regular grid of windows in Quebec City.jpg','Wilfredor','by-sa/4.0','Brickwork and windows']
+  };
+  function photoTheme(item){
+    // Use destination attributes, not the comparison blurb (which mentions the origin).
+    const text=[...(item.tags||[]),...(item.whatMakesItSpecial||[]),...(item.landmarks||[]).map(l=>l.name+' '+l.why)].join(' ').toLowerCase();
+    if(/\b(river|riverside|riverfront|creek|rapids|waterfall|kayak\w*)\b/.test(text))return 'river';
+    if(/\b(beach\w*|coast\w*|ocean|seaside|surf\w*|sailing)\b/.test(text))return 'coast';
+    if(/\b(forest\w*|woodland\w*|trees|tree-lined|hiking|parks?|nature|outdoors?)\b/.test(text))return 'trees';
+    if(/\b(food\w*|caf[eé]s?|coffee|dining|restaurant\w*|culinary)\b/.test(text))return 'coffee';
+    if(/\b(architecture|historic|urban|buildings?|arts?|galleries)\b/.test(text))return 'architecture';
+    return 'coffee';
+  }
+  function illustrativePhoto(item){
+    const theme=photoTheme(item),p=themePhotos[theme];
+    return {src:'https://neighborhood-matches.vercel.app/photos/'+theme+'.jpg',sourceUrl:'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(p[0]),author:p[1],license:p[2]==='CC0'?'CC0':('CC '+p[2].replace('by-sa/','BY-SA ')),licenseUrl:'https://creativecommons.org/'+(p[2]==='CC0'?'publicdomain/zero/1.0/':'licenses/'+p[2]+'/'),alt:p[3]+' — illustrative, not a photograph of this destination',label:'Illustrative photo · not this location',kind:'illustrative'};
+  }
+  function photoMarkup(photo,index){
+    return '<img class="tt-photo" src="'+esc(photo.src)+'" alt="'+esc(photo.alt)+'" width="960" height="640" loading="'+(index===0?'eager':'lazy')+'" decoding="async"><div class="tt-photo-fallback" hidden>Explore the details below</div><figcaption class="tt-credit"><strong>'+esc(photo.label)+'</strong><br><a href="'+esc(photo.sourceUrl)+'" target="_blank" rel="noopener">'+esc(photo.author)+'</a> · <a href="'+esc(photo.licenseUrl)+'" target="_blank" rel="noopener">'+esc(photo.license)+'</a> · cropped to fit</figcaption><span class="tt-rank">#'+(index+1)+' Match</span>';
+  }
+  function card(item, index){
+    const title = esc(item.match || item.city || 'Place');
+    const locationText = [item.city && item.city !== item.match ? item.city : '', item.region].filter(Boolean).join(', ');
+    const raw = String(item.blurb || '');
+    const intro = raw.length > 320 ? raw.slice(0,317).replace(/\s+\S*$/, '') + '…' : raw;
+    const bullets = (item.whatMakesItSpecial||[]).map(b=>'<li>'+esc(b)+'</li>').join('');
+    const landmarks = (item.landmarks||[]).map(l=>'<li><strong>'+esc(l.name)+'</strong> — '+esc(l.why)+'</li>').join('');
+    const tags = (Array.isArray(item.tags)?item.tags:[]).map(chip).join('');
+    // Exact location identity only. Unknown places get an honest fallback, not a random photo.
+    const boroughs = {Williamsburg:'Brooklyn', Greenpoint:'Brooklyn', Astoria:'Queens'};
+    const photo = previewPhotos.find(p=>p.match===item.match && (p.city===item.city || (boroughs[p.match] && [boroughs[p.match],'New York','New York City'].includes(item.city))) && p.region===item.region);
+    const source = photo ? 'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(photo.file) : '';
+    const imageUrl = photo ? (photo.src || 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(photo.file)+'?width=960') : '';
+    const licenseUrl = photo && photo.license==='CC0' ? 'https://creativecommons.org/publicdomain/zero/1.0/' : 'https://creativecommons.org/licenses/by-sa/'+(photo ? photo.license : '')+'/';
+    const licenseLabel = photo && photo.license==='CC0' ? 'CC0 — public domain' : 'CC BY-SA '+(photo ? photo.license : '');
+    const selected=photo?{src:imageUrl,alt:photo.alt,sourceUrl:source,author:photo.author,license:licenseLabel,licenseUrl,label:'Photo of '+item.match}:illustrativePhoto(item);
+    const media=photoMarkup(selected,index);
+    return '<article class="tt-card" data-photo-index="'+index+'" data-photo-kind="'+(photo?'place':'illustrative')+'"><figure class="tt-media">'+media+'</figure><div class="tt-card-body"><h2 class="tt-card-title">'+title+'</h2><p class="tt-location">'+esc(locationText)+'</p><p class="tt-intro">'+esc(intro)+'</p><div class="tt-chips">'+tags+'</div>'+detail('Why it’s a match · '+(item.whatMakesItSpecial||[]).length+' highlights','<p>'+esc(raw)+'</p>'+(bullets?'<div class="tt-h">What makes it special</div><ul class="tt-list">'+bullets+'</ul>':''))+detail('Places worth knowing · '+(item.landmarks||[]).length,landmarks?'<ul class="tt-list">'+landmarks+'</ul>':'<p>No additional places were included in this result.</p>')+detail('Map & explore',mapSection(item)+articleSection(item.news))+'</div></article>';
   }
 
   function skeleton(){
@@ -1067,15 +1141,51 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
     return j;
   }
 
+  let photoController, photoItems=[];
+  function validRemotePhoto(p){
+    try{
+      const src=new URL(p.src),source=new URL(p.sourceUrl),license=new URL(p.licenseUrl);
+      return [src,source,license].every(u=>u.protocol==='https:'&&!u.username&&!u.password) && ['upload.wikimedia.org','thumb.wikimedia.org'].includes(src.hostname) && src.pathname.startsWith('/wikipedia/commons/') && source.hostname==='commons.wikimedia.org' && license.hostname==='creativecommons.org' && ['place','landmark'].includes(p.kind);
+    }catch{return false;}
+  }
+  async function enrichPhoto(item,index,element,signal){
+    if(element.dataset.photoKind==='place')return;
+    const timer=setTimeout(()=>request.abort(),14000),request=new AbortController();
+    const abort=()=>request.abort();signal.addEventListener('abort',abort,{once:true});
+    try{
+      const query=new URLSearchParams({match:item.match||item.city||'',city:item.city||item.match||'',region:item.region||'',landmark:item.landmarks?.[0]?.name||''});
+      const response=await fetch(API_URL.replace(/\/like$/,'/place-photo')+'?'+query,{signal:request.signal});
+      if(!response.ok)return;
+      const {photo}=await response.json();
+      if(!photo || !validRemotePhoto(photo) || signal.aborted || !element.isConnected)return;
+      // Preload before swapping: a failed source must not erase the working fallback.
+      const probe=new Image();
+      probe.onload=()=>{
+        if(signal.aborted || !element.isConnected)return;
+        element.querySelector('.tt-media').innerHTML=photoMarkup(photo,index);
+        element.dataset.photoKind=photo.kind;element.classList.remove('tt-no-photo');
+      };
+      probe.src=photo.src;
+    }catch{/* Photos never block results or sharing. */}
+    finally{clearTimeout(timer);signal.removeEventListener('abort',abort);}
+  }
   function render(list){
+    photoController?.abort();photoController=new AbortController();photoItems=Array.isArray(list)?list:[];
     resultsEl.innerHTML = Array.isArray(list)&&list.length
       ? list.map(card).join("")
       : `<div style="color: rgba(75,46,31,.75); text-align:center;">No matches found.</div>`;
+    resultsEl.querySelectorAll('.tt-photo').forEach(img => {
+      if (img.complete && img.naturalWidth===0) showPhotoFallback(img);
+    });
+    resultsEl.querySelectorAll('.tt-card').forEach((element,index)=>{
+      if(index<3)enrichPhoto(photoItems[index],index,element,photoController.signal);
+    });
   }
 
   async function runSearch(place, region, { updateUrl=true } = {}){
     if(!place || !region){ setStatus("Please fill both fields.", true); return; }
     setStatus(""); setLoading(true);
+    photoController?.abort();
     showShareControls(false);
     resultsEl.innerHTML = skeleton()+skeleton()+skeleton();
     try {
@@ -1097,7 +1207,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
       }
 
       if (hasResults) {
-        setTimeout(()=>{ document.getElementById("shareBottom")?.scrollIntoView({ behavior:"smooth", block:"end" }); }, 60);
+        setTimeout(()=>{ resultsEl.scrollIntoView({ behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start" }); }, 60);
       }
     } catch(e){
       console.error(e);
@@ -1123,6 +1233,26 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
       }
     });
   });
+
+  function showPhotoFallback(img){
+    const element=img.closest('.tt-card'),index=Number(element?.dataset.photoIndex);
+    if(element && element.dataset.photoKind!=='illustrative' && photoItems[index]){
+      element.dataset.photoKind='illustrative';
+      element.querySelector('.tt-media').innerHTML=photoMarkup(illustrativePhoto(photoItems[index]),index);
+      return;
+    }
+    img.hidden = true;
+    img.nextElementSibling.hidden = false;
+    img.closest('.tt-card').classList.add('tt-no-photo');
+  }
+  resultsEl.addEventListener('error', event => {
+    if (event.target.matches('.tt-photo')) showPhotoFallback(event.target);
+  }, true);
+  resultsEl.addEventListener('toggle', event => {
+    if (event.target.open) event.target.querySelectorAll('iframe[data-src]').forEach(frame => {
+      frame.src = frame.dataset.src; frame.removeAttribute('data-src');
+    });
+  }, true);
 
   shareTopLink.addEventListener("click", copyFrozenLink);
   shareBtn.addEventListener("click",      copyFrozenLink);
