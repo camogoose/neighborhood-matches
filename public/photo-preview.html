@@ -1,4 +1,4 @@
-<!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
+<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Free photo preview</title></head><body><p style="text-align:center">PHOTO PREVIEW — sample results, real free photo lookup. No paid searches. Live site unchanged.</p><script>const realFetch=window.fetch.bind(window);window.fetch=(url,options)=>String(url).includes("/api/like")?Promise.resolve(new Response(JSON.stringify({ok:true,results:[{"match":"Federal Hill","city":"Providence","region":"Rhode Island, USA","tags":["food","community"],"whatMakesItSpecial":["Italian restaurants and local dining"],"landmarks":[{"name":"DePasquale Square","why":"A gathering place"}],"blurb":"A food-focused neighborhood with a strong community feel."},{"match":"West End","city":"Providence","region":"Rhode Island, USA","tags":["arts","historic"],"whatMakesItSpecial":["Historic architecture"],"landmarks":[],"blurb":"Historic streets and a creative local community."},{"match":"Narrowsburg","city":"Narrowsburg","region":"New York, USA","tags":["river town"],"whatMakesItSpecial":["Access to the Delaware River"],"landmarks":[],"blurb":"A small river town."}]}))):String(url).includes("/api/share")?Promise.reject(new Error("Saving disabled in photo preview")):realFetch(url,options);</script><!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
 <style>
 /* The native form remains in the page; only its duplicate launcher is hidden. */
 body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
@@ -717,7 +717,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   const subHeadline = document.getElementById("subHeadline");
   subHeadline.innerHTML = `Type in a city or neighborhood you love — like <em>${examples[Math.floor(Math.random()*examples.length)]}</em> — and discover places just like it in the region you’re curious about.`;
 
-  const API_URL = "https://neighborhood-matches.vercel.app/api/like";
+  const API_URL = "/api/like";
 
   const $ = (id) => document.getElementById(id);
   const placeEl = $("sourcePlace"), regionEl = $("regionInput"), btn = $("findBtn");
@@ -902,7 +902,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   let lastSnapshot = null;
   let savedShare = null;
   let sharing = false;
-  const SHARE_API = 'https://neighborhood-matches.vercel.app/api/share';
+  const SHARE_API = '/api/share';
 
   async function shareRequest(options, id){
     const controller = new AbortController();
@@ -1018,7 +1018,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   }
   function illustrativePhoto(item){
     const theme=photoTheme(item),p=themePhotos[theme];
-    return {src:'https://neighborhood-matches.vercel.app/photos/'+theme+'.jpg',sourceUrl:'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(p[0]),author:p[1],license:p[2]==='CC0'?'CC0':('CC '+p[2].replace('by-sa/','BY-SA ')),licenseUrl:'https://creativecommons.org/'+(p[2]==='CC0'?'publicdomain/zero/1.0/':'licenses/'+p[2]+'/'),alt:p[3]+' — illustrative, not a photograph of this destination',label:'Illustrative photo · not this location',kind:'illustrative'};
+    return {src:'/photos/'+theme+'.jpg',sourceUrl:'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(p[0]),author:p[1],license:p[2]==='CC0'?'CC0':('CC '+p[2].replace('by-sa/','BY-SA ')),licenseUrl:'https://creativecommons.org/'+(p[2]==='CC0'?'publicdomain/zero/1.0/':'licenses/'+p[2]+'/'),alt:p[3]+' — illustrative, not a photograph of this destination',label:'Illustrative photo · not this location',kind:'illustrative'};
   }
   function photoMarkup(photo,index){
     return '<img class="tt-photo" src="'+esc(photo.src)+'" alt="'+esc(photo.alt)+'" width="960" height="640" loading="'+(index===0?'eager':'lazy')+'" decoding="async"><div class="tt-photo-fallback" hidden>Explore the details below</div><figcaption class="tt-credit"><strong>'+esc(photo.label)+'</strong><br><a href="'+esc(photo.sourceUrl)+'" target="_blank" rel="noopener">'+esc(photo.author)+'</a> · <a href="'+esc(photo.licenseUrl)+'" target="_blank" rel="noopener">'+esc(photo.license)+'</a> · cropped to fit</figcaption><span class="tt-rank">#'+(index+1)+' Match</span>';
@@ -1314,3 +1314,4 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   })();
 })();
 </script>
+</body></html>
