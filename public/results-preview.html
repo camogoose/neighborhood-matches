@@ -648,6 +648,7 @@ body{margin:0;background:#f6f1e7;}
 #like-that-ish .tt-no-photo .tt-photo-fallback{height:auto;min-height:72px;padding:20px 18px 20px 132px;text-align:left;display:flex;align-items:center;font:13px/1.5 Arial,sans-serif;background:none;}
 #like-that-ish .tt-no-photo .tt-rank{top:20px;}
 #like-that-ish .tt-no-photo .tt-credit{display:none;}
+#like-that-ish #subHeadline:empty{display:none;}
 </style>
 
 <div id="tt-nav-shell">
@@ -1339,7 +1340,7 @@ body{margin:0;background:#f6f1e7;}
       placeEl.value = sample.place; regionEl.value = sample.region;
       render(sample.results);
       document.querySelector('#like-that-ish .tt-title').textContent = 'Your existing results, in a new layout.';
-      document.getElementById('subHeadline').textContent = 'Different places, familiar possibilities. Explore the character of each place below.';
+      document.getElementById('subHeadline').textContent = '';
       document.querySelector('#like-that-ish .tt-form').hidden = true;
       setStatus('Text transcribed from your screenshot for layout comparison—not a new search or fact-check.');
       return;
