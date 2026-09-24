@@ -1,4 +1,14 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Results design preview — This Place</title></head><body><div class="tt-preview-banner">DESIGN PREVIEW · Full-detail comparison · No paid searches · Live site unchanged</div><header class="tt-preview-brand">this place is just<br>like that place<div class="tt-preview-stripe" aria-hidden="true"></div></header><!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Results design preview — This Place</title></head><body><div class="tt-preview-banner">DESIGN PREVIEW · Full-detail comparison · No paid searches · Live site unchanged</div><header class="tt-preview-brand" id="tt-preview-header">
+  <div class="tt-preview-wordmark">this place is just<br>like that place</div>
+  <button class="tt-preview-menu" id="tt-preview-menu" type="button" aria-label="Open navigation" aria-controls="tt-nav-shell" aria-expanded="false"><span></span><span></span><span></span></button>
+  <svg class="tt-preview-stripe" viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path d="M0 126 H405 C465 126 461 48 535 48 H1000" stroke="#ffca49"/>
+    <path d="M0 133 H405 C468 133 468 55 535 55 H1000" stroke="#f6a435"/>
+    <path d="M0 140 H405 C471 140 475 62 535 62 H1000" stroke="#e77b2b"/>
+    <path d="M0 147 H405 C474 147 482 69 535 69 H1000" stroke="#bd5429"/>
+    <path d="M0 154 H405 C477 154 489 76 535 76 H1000" stroke="#80442d"/>
+  </svg>
+</header><!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
 <style>
 /* The native form remains in the page; only its duplicate launcher is hidden. */
 body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
@@ -598,8 +608,29 @@ body{margin:0;background:#f6f1e7;}
 #like-that-ish .tt-results-actions{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:24px 0 18px;}
 #like-that-ish .tt-outline{min-height:44px;padding:10px 18px;border:1px solid #b05a25;border-radius:30px;background:transparent;color:#713718;font:600 14px Arial,sans-serif;cursor:pointer;}
 .tt-preview-banner{padding:12px 20px;background:#4b2e1f;color:#fff8ef;font:13px/1.5 Arial,sans-serif;text-align:center;}
-.tt-preview-brand{max-width:1000px;margin:28px auto 14px;padding:0 20px;color:#4b2e1f;font:bold 29px/1 Georgia,serif;letter-spacing:-1px;}
-.tt-preview-stripe{height:16px;background:linear-gradient(to bottom,#ffca49 0 25%,#f5a135 25% 50%,#dd7530 50% 75%,#944c30 75%);margin:18px 0 0;}
+/* The reference header: logo in the left pocket, navigation beneath the raised stripe. */
+.tt-preview-brand{position:relative;box-sizing:border-box;max-width:1040px;height:176px;margin:12px auto 0;color:#4b2e1f;}
+.tt-preview-wordmark{position:absolute;left:30px;top:17px;font:900 clamp(32px,4.1vw,44px)/.92 "Fraunces",Georgia,serif;letter-spacing:-1.8px;z-index:1;}
+.tt-preview-stripe{position:absolute;left:0;top:0;width:100%;height:160px;display:block;pointer-events:none;}
+.tt-preview-stripe path{fill:none;stroke-width:7.5;}
+.tt-preview-menu{display:none;}
+#tt-preview-header #tt-nav-shell{display:block;top:87px;left:auto;right:20px;width:48%;padding:0;font-family:Arial,sans-serif;}
+#tt-preview-header #tt-top-nav{width:100%;max-width:none;margin:0;justify-content:flex-end;gap:clamp(12px,2.2vw,27px);flex-wrap:nowrap;}
+#tt-preview-header #tt-top-nav button{padding:0;min-height:44px;font:600 14px/1.4 Arial,sans-serif;align-items:center;}
+#tt-preview-header #tt-nav-shell .tt-info-panel{left:auto;right:0;transform:none;top:calc(100% + 8px);}
+#tt-preview-header button:focus-visible{outline:2px solid #087e96;outline-offset:4px;}
+@media(max-width:759px){
+  .tt-preview-brand{height:118px;margin-top:10px;}
+  .tt-preview-wordmark{left:20px;top:13px;font-size:28px;letter-spacing:-1px;}
+  .tt-preview-stripe{top:64px;height:44px;}
+  .tt-preview-menu{position:absolute;right:18px;top:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:44px;height:44px;border:0;background:transparent;color:#4b2e1f;cursor:pointer;}
+  .tt-preview-menu span{width:24px;height:2px;background:currentColor;}
+  #tt-preview-header #tt-nav-shell{display:none;top:110px;left:12px;right:12px;width:auto;padding:10px 14px;background:#fbf7ef;border:1px solid #e3d9cb;border-radius:12px;box-shadow:0 8px 20px #4b2e1f18;}
+  #tt-preview-header.tt-menu-open #tt-nav-shell{display:block;}
+  #tt-preview-header #tt-top-nav{justify-content:space-between;gap:4px;flex-wrap:wrap;}
+  #tt-preview-header #tt-top-nav button{font-size:13px;}
+  #tt-preview-header #tt-nav-shell .tt-info-panel{right:0;width:min(560px,calc(100vw - 24px));}
+}
 #like-that-ish .tt-preview-footer{font:13px/1.5 Arial,sans-serif;border-top:1px solid #ddcbb5;margin-top:28px;padding-top:22px;}
 @media(min-width:760px){
  #like-that-ish{padding:28px 30px 56px;}
@@ -731,6 +762,40 @@ body{margin:0;background:#f6f1e7;}
   // In this 2500px-wide artwork, y=88 stays safely above the yellow line
   // throughout the straight area and the start of the curve.
   function mountNavigation(){
+    const previewHeader = $("tt-preview-header");
+    if (previewHeader) {
+      previewHeader.append(navShell);
+      navShell.classList.add("tt-nav-ready");
+      const menu = $("tt-preview-menu");
+      function closePreviewMenu(returnFocus = false){
+        const wasOpen = previewHeader.classList.contains("tt-menu-open");
+        previewHeader.classList.remove("tt-menu-open");
+        menu.setAttribute("aria-expanded", "false");
+        menu.setAttribute("aria-label", "Open navigation");
+        closeInfoPanels();
+        if (returnFocus && wasOpen) menu.focus();
+      }
+      menu.addEventListener("click", () => {
+        const open = !previewHeader.classList.contains("tt-menu-open");
+        previewHeader.classList.toggle("tt-menu-open", open);
+        menu.setAttribute("aria-expanded", String(open));
+        menu.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+        if (!open) closeInfoPanels();
+      });
+      document.addEventListener("pointerdown", event => {
+        if (!previewHeader.contains(event.target)) closePreviewMenu();
+      });
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !navShell.querySelector(".tt-info-panel.is-open")) closePreviewMenu(true);
+      });
+      previewHeader.addEventListener("focusout", () => {
+        setTimeout(() => {
+          if (!previewHeader.contains(document.activeElement)) closePreviewMenu();
+        }, 0);
+      });
+      window.matchMedia("(max-width:759px)").addEventListener("change", () => closePreviewMenu());
+      return true;
+    }
     const stripe = $("tpljt-stripe");
     if (!stripe || !stripe.parentElement) return false;
     let header = $("tt-swoosh-header");
