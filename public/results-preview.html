@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Results design preview — This Place</title></head><body><div class="tt-preview-banner">DESIGN PREVIEW · Sample content · No paid searches · Live site unchanged</div><header class="tt-preview-brand">this place is just<br>like that place<div class="tt-preview-stripe" aria-hidden="true"></div></header><!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Results design preview — This Place</title></head><body><div class="tt-preview-banner">DESIGN PREVIEW · Full-detail comparison · No paid searches · Live site unchanged</div><header class="tt-preview-brand">this place is just<br>like that place<div class="tt-preview-stripe" aria-hidden="true"></div></header><!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
 <style>
 /* The native form remains in the page; only its duplicate launcher is hidden. */
 body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
@@ -700,7 +700,7 @@ body{margin:0;background:#f6f1e7;}
     <button id="shareTopLink" type="button">Copy shareable link</button>
   </div>
 
-  <div class="tt-results-actions"><button class="tt-outline" id="previewEdit" type="button">← New search</button><button class="tt-outline" id="previewShare" type="button">Share these results</button></div><div id="results" aria-label="Matching places"></div><p class="tt-preview-footer">Different places. A familiar feeling.</p>
+  <details class="tt-disclosure" id="importPanel"><summary>See your saved results in this layout<span class="tt-chevron" aria-hidden="true"></span></summary><div class="tt-detail-body"><label for="savedLink">Paste a short share link or an older long share link</label><input class="tt-input" id="savedLink" type="url" placeholder="https://www.thisplaceisjustlikethatplace.com/?share=…" autocomplete="off"><button class="tt-outline" id="loadSaved" type="button">Load saved results</button><p id="importStatus" role="status" aria-live="polite">Read-only: no new search and no saved results changed.</p></div></details><div class="tt-results-actions"><button class="tt-outline" id="expandDetails" type="button" aria-pressed="false">Expand all details</button><button class="tt-outline" id="previewEdit" type="button">← New search</button><button class="tt-outline" id="previewShare" type="button">Share these results</button></div><div id="results" aria-label="Matching places"></div><p class="tt-preview-footer">Different places. A familiar feeling.</p>
 
   <div id="shareBottom">
     <button id="shareResultsBtn" type="button">Share your results</button>
@@ -900,7 +900,7 @@ body{margin:0;background:#f6f1e7;}
   let lastSnapshot = null;
   let savedShare = null;
   let sharing = false;
-  const SHARE_API = 'https://neighborhood-matches.vercel.app/api/share';
+  const SHARE_API = '/api/share';
 
   async function shareRequest(options, id){
     const controller = new AbortController();
@@ -1004,12 +1004,12 @@ body{margin:0;background:#f6f1e7;}
     const intro = raw.length > 320 ? raw.slice(0,317).replace(/\s+\S*$/, '') + '…' : raw;
     const bullets = (item.whatMakesItSpecial||[]).map(b=>'<li>'+esc(b)+'</li>').join('');
     const landmarks = (item.landmarks||[]).map(l=>'<li><strong>'+esc(l.name)+'</strong> — '+esc(l.why)+'</li>').join('');
-    const tags = (Array.isArray(item.tags)?item.tags:[]).slice(0,6).map(chip).join('');
+    const tags = (Array.isArray(item.tags)?item.tags:[]).map(chip).join('');
     // Exact location identity only. Unknown places get an honest fallback, not a random photo.
-    const photo = previewPhotos.find(p=>p.match===item.match && p.city===item.city && p.region===item.region);
+    const photo = previewPhotos.find(p=>p.match===item.match && (p.city===item.city || (p.match==='Williamsburg' && item.city==='New York')) && p.region===item.region);
     const source = photo ? 'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(photo.file) : '';
     const media = photo ? '<img class="tt-photo" src="https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(photo.file)+'?width=960" alt="'+esc(photo.alt)+'" width="960" height="640" loading="'+(index===0?'eager':'lazy')+'" decoding="async"><div class="tt-photo-fallback" hidden>Photo unavailable</div><figcaption class="tt-credit"><a href="'+source+'" target="_blank" rel="noopener">'+esc(photo.author)+'</a> · <a href="https://creativecommons.org/licenses/by-sa/'+photo.license+'/" target="_blank" rel="noopener">CC BY-SA '+photo.license+'</a> · cropped to fit</figcaption>' : '<div class="tt-photo-fallback">A place to discover<br><small>No verified photo selected yet</small></div>';
-    return '<article class="tt-card"><figure class="tt-media">'+media+'<span class="tt-rank">#'+(index+1)+' Match</span></figure><div class="tt-card-body"><h2 class="tt-card-title">'+title+'</h2><p class="tt-location">'+esc(locationText)+'</p><p class="tt-intro">'+esc(intro)+'</p><div class="tt-chips">'+tags+'</div>'+detail('Why it’s a match','<p>'+esc(raw)+'</p>'+(bullets?'<div class="tt-h">What makes it special</div><ul class="tt-list">'+bullets+'</ul>':''))+detail('Places worth knowing',landmarks?'<ul class="tt-list">'+landmarks+'</ul>':'<p>No additional places were included in this result.</p>')+detail('Map & explore',mapSection(item)+articleSection(item.news))+'</div></article>';
+    return '<article class="tt-card"><figure class="tt-media">'+media+'<span class="tt-rank">#'+(index+1)+' Match</span></figure><div class="tt-card-body"><h2 class="tt-card-title">'+title+'</h2><p class="tt-location">'+esc(locationText)+'</p><p class="tt-intro">'+esc(intro)+'</p><div class="tt-chips">'+tags+'</div>'+detail('Why it’s a match · '+(item.whatMakesItSpecial||[]).length+' highlights','<p>'+esc(raw)+'</p>'+(bullets?'<div class="tt-h">What makes it special</div><ul class="tt-list">'+bullets+'</ul>':''))+detail('Places worth knowing · '+(item.landmarks||[]).length,landmarks?'<ul class="tt-list">'+landmarks+'</ul>':'<p>No additional places were included in this result.</p>')+detail('Map & explore',mapSection(item)+articleSection(item.news))+'</div></article>';
   }
 
   function skeleton(){
@@ -1114,6 +1114,8 @@ body{margin:0;background:#f6f1e7;}
   }
 
   function render(list){
+    $('expandDetails').textContent = 'Expand all details';
+    $('expandDetails').setAttribute('aria-pressed','false');
     resultsEl.innerHTML = Array.isArray(list)&&list.length
       ? list.map(card).join("")
       : `<div style="color: rgba(75,46,31,.75); text-align:center;">No matches found.</div>`;
@@ -1190,6 +1192,62 @@ body{margin:0;background:#f6f1e7;}
       placeEl.focus();
     }
   });
+
+  function validateSaved(snap){
+    if (!snap || snap.v!==1 || typeof snap.place!=='string' || typeof snap.region!=='string' || !Array.isArray(snap.results) || snap.results.length<1 || snap.results.length>3) throw new Error('This link does not contain valid saved results.');
+    for (const r of snap.results) {
+      if (!r || typeof r.match!=='string' || typeof r.blurb!=='string' || typeof r.region!=='string') throw new Error('Incomplete saved result.');
+      for (const key of ['tags','whatMakesItSpecial']) {
+        if (r[key]!=null && (!Array.isArray(r[key]) || !r[key].every(x=>typeof x==='string'))) throw new Error('Invalid saved details.');
+      }
+      if (r.landmarks!=null && (!Array.isArray(r.landmarks) || !r.landmarks.every(x=>x && typeof x.name==='string' && typeof x.why==='string'))) throw new Error('Invalid saved places.');
+    }
+    return snap;
+  }
+  function savedLinkParts(value){
+    if (value.length>100000) throw new Error('This link is too large.');
+    let url;
+    try { url=new URL(value); } catch { throw new Error('Paste the full share link, starting with https://.'); }
+    if (url.protocol!=='https:' || !['www.thisplaceisjustlikethatplace.com','thisplaceisjustlikethatplace.com',location.hostname].includes(url.hostname) || url.username || url.password) throw new Error('Please use a share link from this website.');
+    if (url.searchParams.has('share')) {
+      const id=url.searchParams.get('share');
+      if (!/^[a-f0-9]{24}$/.test(id||'')) throw new Error('Invalid short share link.');
+      return {id};
+    }
+    const m=url.hash.match(/[#&]d=([^&]*)/);
+    if (!m) throw new Error('This is a search link, not saved results. Copy a share link from an existing result.');
+    return {snapshot:validateSaved(decodeSnapshot(m[1]))};
+  }
+  function showSaved(snap){
+    validateSaved(snap);
+    placeEl.value=snap.place; regionEl.value=snap.region;
+    lastSnapshot=snap;
+    render(snap.results);
+    document.querySelector('#like-that-ish .tt-title').textContent=snap.results.length+' places like '+snap.place+', in '+snap.region+'.';
+    $('subHeadline').textContent='The same saved recommendations, with all their details. Open each section below to explore.';
+    document.querySelector('#like-that-ish .tt-form').hidden=true;
+    setStatus('Saved results — no new search was run.');
+  }
+  $('expandDetails').addEventListener('click',()=>{
+    const sections=Array.from(resultsEl.querySelectorAll('details'));
+    const open=sections.some(x=>!x.open);
+    sections.forEach(x=>{x.open=open;});
+    $('expandDetails').textContent=open?'Collapse all details':'Expand all details';
+    $('expandDetails').setAttribute('aria-pressed',String(open));
+  });
+  $('loadSaved').addEventListener('click',async()=>{
+    const button=$('loadSaved'), status=$('importStatus');
+    button.disabled=true; status.textContent='Loading saved results…';
+    try {
+      const parsed=savedLinkParts($('savedLink').value.trim());
+      const snap=parsed.id ? (await shareRequest({method:'GET'},parsed.id)).snapshot : parsed.snapshot;
+      showSaved(snap);
+      status.textContent='Loaded all saved details. No new search was run.';
+    } catch(error) {
+      status.textContent=error.name==='AbortError'?'Loading timed out. Your existing results are still here.':error.message;
+    } finally {button.disabled=false;}
+  });
+
   $('previewShare').addEventListener('click', copyFrozenLink);
   shareTopLink.addEventListener("click", copyFrozenLink);
   shareBtn.addEventListener("click",      copyFrozenLink);
@@ -1197,13 +1255,13 @@ body{margin:0;background:#f6f1e7;}
   (async function hydrateFromUrl(){
     const qs = new URLSearchParams(location.search);
     if (!qs.has('share') && !location.hash.includes('d=')) {
-      const sample = {"v":1,"place":"Austin, Texas","region":"New York State","priorities":[],"results":[{"rank":1,"match":"Williamsburg","city":"Brooklyn","region":"New York, USA","blurb":"This sample pairs a creative neighborhood with independent food, music, and waterfront spaces. Williamsburg is denser and more urban than Austin; the comparison is illustrative, not a new search result.","whatMakesItSpecial":["Independent shops and gathering places","Waterfront walks at Domino Park"],"landmarks":[{"name":"Domino Park","why":"A waterfront place to explore."}],"tags":["arts","food","urban","waterfront"],"news":null},{"rank":2,"match":"Ithaca","city":"Ithaca","region":"New York, USA","blurb":"This sample explores the outdoors-and-college-town side of a comparison. Ithaca is much smaller than Austin, with its own pace and identity.","whatMakesItSpecial":["Waterfalls and nearby outdoor spaces","A distinct college-town character"],"landmarks":[{"name":"Ithaca Falls","why":"A waterfall within the city."}],"tags":["outdoors","college town","scenic"],"news":null},{"rank":3,"match":"Hudson","city":"Hudson","region":"New York, USA","blurb":"This sample emphasizes a compact main street and creative character. Hudson is a smaller place, so its pace and scale differ considerably from Austin.","whatMakesItSpecial":["Historic streetscapes","A compact downtown to explore"],"landmarks":[{"name":"Warren Street","why":"The main street shown in the photograph."}],"tags":["arts","historic","small city"],"news":null}]};
+      const sample = {"v":1,"place":"Austin","region":"New York","priorities":[],"results":[{"rank":1,"match":"Astoria","city":"New York","region":"New York, USA","blurb":"Astoria shares a vibrant cultural scene with a mix of diverse dining options and artistic venues, similar to Austen's community feel. However, it has a more urban pace and is closer to the bustling areas of Manhattan.","whatMakesItSpecial":["Rich Greek and Middle Eastern culinary scene","Home to the Museum of the Moving Image","Access to Astoria Park along the East River","Strong community vibe with local markets","Proximity to public transportation for easy city access"],"landmarks":[{"name":"Astoria Park","why":"Offers expansive green space and waterfront views, perfect for outdoor activities."}],"tags":["cultural","diverse","community","urban","foodie"],"news":null},{"rank":2,"match":"Greenpoint","city":"New York","region":"New York, USA","blurb":"Greenpoint features a blend of artistic spaces and local shops, akin to Austen's charm, with a strong sense of community. It is more residential and quieter than some other Brooklyn neighborhoods, providing a different pace.","whatMakesItSpecial":["Historic Polish community with authentic eateries","Beautiful waterfront parks with views of Manhattan","Art galleries and creative studios throughout the area","Strong local business presence with unique shops","Family-friendly atmosphere"],"landmarks":[{"name":"Transmitter Park","why":"A scenic waterfront park ideal for relaxation and community events."}],"tags":["artistic","community","residential","food","waterfront"],"news":null},{"rank":3,"match":"Williamsburg","city":"New York","region":"New York, USA","blurb":"Williamsburg offers a lively arts and music scene similar to Austen's creative spirit, with a plethora of dining and nightlife options. However, it tends to be more touristy and bustling compared to the quieter neighborhoods.","whatMakesItSpecial":["Vibrant street art and music culture","Diverse food scene with trendy restaurants","Access to the East River waterfront for recreational activities","Frequent cultural events and festivals","Strong nightlife with bars and music venues"],"landmarks":[{"name":"Brooklyn Brewery","why":"A popular local brewery that embodies the neighborhood's craft beer culture."}],"tags":["vibrant","artistic","trendy","nightlife","food"],"news":null}]};
       placeEl.value = sample.place; regionEl.value = sample.region;
       render(sample.results);
-      document.querySelector('#like-that-ish .tt-title').textContent = 'Here are 3 places like Austin, in New York.';
+      document.querySelector('#like-that-ish .tt-title').textContent = 'Your existing results, in a new layout.';
       document.getElementById('subHeadline').textContent = 'Different places, familiar possibilities. Explore the character of each place below.';
       document.querySelector('#like-that-ish .tt-form').hidden = true;
-      setStatus('Design samples only — not newly generated recommendations.');
+      setStatus('Text transcribed from your screenshot for layout comparison—not a new search or fact-check.');
       return;
     }
     const shareId = qs.get('share');
@@ -1220,7 +1278,7 @@ body{margin:0;background:#f6f1e7;}
         priorityEls.forEach(el => { el.checked = (snap.priorities || []).includes(el.value); });
         lastSnapshot = snap;
         savedShare = { key: JSON.stringify(snap), url: 'https://www.thisplaceisjustlikethatplace.com/?share=' + shareId };
-        render(snap.results);
+        showSaved(snap);
         showShareControls(true);
         setStatus('Saved results — no new search was run.');
       } catch (error) {
@@ -1247,7 +1305,7 @@ body{margin:0;background:#f6f1e7;}
       const savedPriorities = Array.isArray(snap.priorities) ? snap.priorities : [];
       priorityEls.forEach(el => { el.checked = savedPriorities.includes(el.value); });
       lastSnapshot = snap;
-      render(snap.results);
+      showSaved(snap);
       showShareControls(true);
       setStatus("");
       return;
