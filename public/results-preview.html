@@ -642,6 +642,12 @@ body{margin:0;background:#f6f1e7;}
 }
 @media(prefers-reduced-motion:reduce){#like-that-ish *{scroll-behavior:auto!important;transition:none!important;}}
 
+/* No-photo cards keep every detail without a large empty image column. */
+#like-that-ish .tt-card.tt-no-photo{grid-template-columns:minmax(0,1fr);}
+#like-that-ish .tt-no-photo .tt-media{display:block;min-height:72px;background:#eee4d4;border-top:5px solid #d97a2b;}
+#like-that-ish .tt-no-photo .tt-photo-fallback{height:auto;min-height:72px;padding:20px 18px 20px 132px;text-align:left;display:flex;align-items:center;font:13px/1.5 Arial,sans-serif;background:none;}
+#like-that-ish .tt-no-photo .tt-rank{top:20px;}
+#like-that-ish .tt-no-photo .tt-credit{display:none;}
 </style>
 
 <div id="tt-nav-shell">
@@ -1058,7 +1064,7 @@ body{margin:0;background:#f6f1e7;}
   }
 
 
-  const previewPhotos = [{"match":"Williamsburg","city":"Brooklyn","region":"New York, USA","file":"Domino Park, Brooklyn - 20220615 - 01 - view northward featuring skylines.jpg","author":"Andre Carrotflower","license":"4.0","alt":"Waterfront promenade at Domino Park in Williamsburg, Brooklyn"},{"match":"Ithaca","city":"Ithaca","region":"New York, USA","file":"Ithaca Falls.JPG","author":"Stilfehler at wikivoyage shared","license":"1.0","alt":"Ithaca Falls in Ithaca, New York"},{"match":"Hudson","city":"Hudson","region":"New York, USA","file":"Warren Street west view, Hudson, NY.jpg","author":"Daniel Case","license":"3.0","alt":"Looking west along Warren Street in Hudson, New York"}];
+  const previewPhotos = [{"match":"Williamsburg","city":"Brooklyn","region":"New York, USA","file":"Domino Park, Brooklyn - 20220615 - 01 - view northward featuring skylines.jpg","author":"Andre Carrotflower","license":"4.0","alt":"Waterfront promenade at Domino Park in Williamsburg, Brooklyn"},{"match":"Ithaca","city":"Ithaca","region":"New York, USA","file":"Ithaca Falls.JPG","author":"Stilfehler at wikivoyage shared","license":"1.0","alt":"Ithaca Falls in Ithaca, New York"},{"match":"Hudson","city":"Hudson","region":"New York, USA","file":"Warren Street west view, Hudson, NY.jpg","author":"Daniel Case","license":"3.0","alt":"Looking west along Warren Street in Hudson, New York"},{"match":"Astoria","city":"New York","region":"New York, USA","file":"Astoria Park, Queens.jpg","author":"Rsmn","license":"CC0","alt":"Trees and paths in Astoria Park, Queens (2016)","src":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Astoria_Park%2C_Queens.jpg/960px-Astoria_Park%2C_Queens.jpg"},{"match":"Greenpoint","city":"New York","region":"New York, USA","file":"Greenpoint, Brooklyn 2009.JPG","author":"Jleon; crop by Beyond My Ken","license":"3.0","alt":"Manhattan Avenue streetscape in Greenpoint, Brooklyn (2009)","src":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Greenpoint%2C_Brooklyn_2009.JPG/960px-Greenpoint%2C_Brooklyn_2009.JPG"}];
   function detail(label, body){
     return '<details class="tt-disclosure"><summary>'+esc(label)+'<span class="tt-chevron" aria-hidden="true"></span></summary><div class="tt-detail-body">'+body+'</div></details>';
   }
@@ -1073,8 +1079,11 @@ body{margin:0;background:#f6f1e7;}
     // Exact location identity only. Unknown places get an honest fallback, not a random photo.
     const photo = previewPhotos.find(p=>p.match===item.match && (p.city===item.city || (p.match==='Williamsburg' && item.city==='New York')) && p.region===item.region);
     const source = photo ? 'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(photo.file) : '';
-    const media = photo ? '<img class="tt-photo" src="https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(photo.file)+'?width=960" alt="'+esc(photo.alt)+'" width="960" height="640" loading="'+(index===0?'eager':'lazy')+'" decoding="async"><div class="tt-photo-fallback" hidden>Photo unavailable</div><figcaption class="tt-credit"><a href="'+source+'" target="_blank" rel="noopener">'+esc(photo.author)+'</a> · <a href="https://creativecommons.org/licenses/by-sa/'+photo.license+'/" target="_blank" rel="noopener">CC BY-SA '+photo.license+'</a> · cropped to fit</figcaption>' : '<div class="tt-photo-fallback">A place to discover<br><small>No verified photo selected yet</small></div>';
-    return '<article class="tt-card"><figure class="tt-media">'+media+'<span class="tt-rank">#'+(index+1)+' Match</span></figure><div class="tt-card-body"><h2 class="tt-card-title">'+title+'</h2><p class="tt-location">'+esc(locationText)+'</p><p class="tt-intro">'+esc(intro)+'</p><div class="tt-chips">'+tags+'</div>'+detail('Why it’s a match · '+(item.whatMakesItSpecial||[]).length+' highlights','<p>'+esc(raw)+'</p>'+(bullets?'<div class="tt-h">What makes it special</div><ul class="tt-list">'+bullets+'</ul>':''))+detail('Places worth knowing · '+(item.landmarks||[]).length,landmarks?'<ul class="tt-list">'+landmarks+'</ul>':'<p>No additional places were included in this result.</p>')+detail('Map & explore',mapSection(item)+articleSection(item.news))+'</div></article>';
+    const imageUrl = photo ? (photo.src || 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(photo.file)+'?width=960') : '';
+    const licenseUrl = photo && photo.license==='CC0' ? 'https://creativecommons.org/publicdomain/zero/1.0/' : 'https://creativecommons.org/licenses/by-sa/'+(photo ? photo.license : '')+'/';
+    const licenseLabel = photo && photo.license==='CC0' ? 'CC0 — public domain' : 'CC BY-SA '+(photo ? photo.license : '');
+    const media = photo ? '<img class="tt-photo" src="'+esc(imageUrl)+'" alt="'+esc(photo.alt)+'" width="960" height="640" loading="'+(index===0?'eager':'lazy')+'" decoding="async"><div class="tt-photo-fallback" hidden>Photo unavailable · Explore the details below</div><figcaption class="tt-credit"><a href="'+source+'" target="_blank" rel="noopener">'+esc(photo.author)+'</a> · <a href="'+licenseUrl+'" target="_blank" rel="noopener">'+esc(licenseLabel)+'</a> · cropped to fit</figcaption>' : '<div class="tt-photo-fallback">Explore this place · Photo not yet available</div>';
+    return '<article class="tt-card'+(photo?'':' tt-no-photo')+'"><figure class="tt-media">'+media+'<span class="tt-rank">#'+(index+1)+' Match</span></figure><div class="tt-card-body"><h2 class="tt-card-title">'+title+'</h2><p class="tt-location">'+esc(locationText)+'</p><p class="tt-intro">'+esc(intro)+'</p><div class="tt-chips">'+tags+'</div>'+detail('Why it’s a match · '+(item.whatMakesItSpecial||[]).length+' highlights','<p>'+esc(raw)+'</p>'+(bullets?'<div class="tt-h">What makes it special</div><ul class="tt-list">'+bullets+'</ul>':''))+detail('Places worth knowing · '+(item.landmarks||[]).length,landmarks?'<ul class="tt-list">'+landmarks+'</ul>':'<p>No additional places were included in this result.</p>')+detail('Map & explore',mapSection(item)+articleSection(item.news))+'</div></article>';
   }
 
   function skeleton(){
@@ -1184,6 +1193,10 @@ body{margin:0;background:#f6f1e7;}
     resultsEl.innerHTML = Array.isArray(list)&&list.length
       ? list.map(card).join("")
       : `<div style="color: rgba(75,46,31,.75); text-align:center;">No matches found.</div>`;
+    // Cached failures may finish before the error listener sees an event.
+    resultsEl.querySelectorAll('.tt-photo').forEach(img => {
+      if (img.complete && img.naturalWidth===0) showPhotoFallback(img);
+    });
   }
 
   async function runSearch(place, region, { updateUrl=true } = {}){
@@ -1238,11 +1251,13 @@ body{margin:0;background:#f6f1e7;}
   });
 
 
+  function showPhotoFallback(img){
+    img.hidden = true;
+    img.nextElementSibling.hidden = false;
+    img.closest('.tt-card').classList.add('tt-no-photo');
+  }
   resultsEl.addEventListener('error', event => {
-    if (event.target.matches('.tt-photo')) {
-      event.target.hidden = true;
-      event.target.nextElementSibling.hidden = false;
-    }
+    if (event.target.matches('.tt-photo')) showPhotoFallback(event.target);
   }, true);
   resultsEl.addEventListener('toggle', event => {
     if (event.target.open) event.target.querySelectorAll('iframe[data-src]').forEach(frame => {
