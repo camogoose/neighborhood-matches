@@ -1,4 +1,14 @@
-<!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Results design preview — This Place</title></head><body><div class="tt-preview-banner">DESIGN PREVIEW · Full-detail comparison · No paid searches · Live site unchanged</div><header class="tt-preview-brand" id="tt-preview-header">
+  <div class="tt-preview-wordmark">this place is just<br>like that place</div>
+  <button class="tt-preview-menu" id="tt-preview-menu" type="button" aria-label="Open navigation" aria-controls="tt-nav-shell" aria-expanded="false"><span></span><span></span><span></span></button>
+  <svg class="tt-preview-stripe" viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path d="M0 126 H405 C465 126 461 48 535 48 H1000" stroke="#ffca49"/>
+    <path d="M0 133 H405 C468 133 468 55 535 55 H1000" stroke="#f6a435"/>
+    <path d="M0 140 H405 C471 140 475 62 535 62 H1000" stroke="#e77b2b"/>
+    <path d="M0 147 H405 C474 147 482 69 535 69 H1000" stroke="#bd5429"/>
+    <path d="M0 154 H405 C477 154 489 76 535 76 H1000" stroke="#80442d"/>
+  </svg>
+</header><!-- THIS~THAT V11 — short links; requires /api/share and connected storage. -->
 <style>
 /* The native form remains in the page; only its duplicate launcher is hidden. */
 body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
@@ -563,7 +573,9 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
     #tt-nav-shell .tt-info-panel{ padding: 18px; }
     #like-that-ish .tt-priority-heading{ flex-wrap: wrap; }
   }
-/* Approved photo-led cards; existing site header and API flows retained. */
+
+/* Results redesign — isolated visual preview; no production replacement. */
+body{margin:0;background:#f6f1e7;}
 #like-that-ish{box-sizing:border-box;max-width:1040px;border-radius:0;box-shadow:none;padding:28px 20px 48px;}
 #like-that-ish *,#like-that-ish *::before,#like-that-ish *::after{box-sizing:border-box;}
 #like-that-ish [hidden]{display:none!important;}
@@ -595,6 +607,31 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
 #like-that-ish summary:focus-visible,#like-that-ish button:focus-visible,#like-that-ish a:focus-visible{outline:3px solid #a64e18;outline-offset:4px;}
 #like-that-ish .tt-results-actions{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:24px 0 18px;}
 #like-that-ish .tt-outline{min-height:44px;padding:10px 18px;border:1px solid #b05a25;border-radius:30px;background:transparent;color:#713718;font:600 14px Arial,sans-serif;cursor:pointer;}
+.tt-preview-banner{padding:12px 20px;background:#4b2e1f;color:#fff8ef;font:13px/1.5 Arial,sans-serif;text-align:center;}
+/* The reference header: logo in the left pocket, navigation beneath the raised stripe. */
+.tt-preview-brand{position:relative;box-sizing:border-box;max-width:1040px;height:176px;margin:12px auto 0;color:#4b2e1f;}
+.tt-preview-wordmark{position:absolute;left:30px;top:17px;font:900 clamp(32px,4.1vw,44px)/.92 "Fraunces",Georgia,serif;letter-spacing:-1.8px;z-index:1;}
+.tt-preview-stripe{position:absolute;left:0;top:0;width:100%;height:160px;display:block;pointer-events:none;}
+.tt-preview-stripe path{fill:none;stroke-width:7.5;}
+.tt-preview-menu{display:none;}
+#tt-preview-header #tt-nav-shell{display:block;top:87px;left:auto;right:20px;width:48%;padding:0;font-family:Arial,sans-serif;}
+#tt-preview-header #tt-top-nav{width:100%;max-width:none;margin:0;justify-content:flex-end;gap:clamp(12px,2.2vw,27px);flex-wrap:nowrap;}
+#tt-preview-header #tt-top-nav button{padding:0;min-height:44px;font:600 14px/1.4 Arial,sans-serif;align-items:center;}
+#tt-preview-header #tt-nav-shell .tt-info-panel{left:auto;right:0;transform:none;top:calc(100% + 8px);}
+#tt-preview-header button:focus-visible{outline:2px solid #087e96;outline-offset:4px;}
+@media(max-width:759px){
+  .tt-preview-brand{height:118px;margin-top:10px;}
+  .tt-preview-wordmark{left:20px;top:13px;font-size:28px;letter-spacing:-1px;}
+  .tt-preview-stripe{top:64px;height:44px;}
+  .tt-preview-menu{position:absolute;right:18px;top:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:44px;height:44px;border:0;background:transparent;color:#4b2e1f;cursor:pointer;}
+  .tt-preview-menu span{width:24px;height:2px;background:currentColor;}
+  #tt-preview-header #tt-nav-shell{display:none;top:110px;left:12px;right:12px;width:auto;padding:10px 14px;background:#fbf7ef;border:1px solid #e3d9cb;border-radius:12px;box-shadow:0 8px 20px #4b2e1f18;}
+  #tt-preview-header.tt-menu-open #tt-nav-shell{display:block;}
+  #tt-preview-header #tt-top-nav{justify-content:space-between;gap:4px;flex-wrap:wrap;}
+  #tt-preview-header #tt-top-nav button{font-size:13px;}
+  #tt-preview-header #tt-nav-shell .tt-info-panel{right:0;width:min(560px,calc(100vw - 24px));}
+}
+#like-that-ish .tt-preview-footer{font:13px/1.5 Arial,sans-serif;border-top:1px solid #ddcbb5;margin-top:28px;padding-top:22px;}
 @media(min-width:760px){
  #like-that-ish{padding:28px 30px 56px;}
  #like-that-ish .tt-card{grid-template-columns:minmax(0,40%) minmax(0,60%);}
@@ -612,7 +649,6 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
 #like-that-ish .tt-no-photo .tt-rank{top:20px;}
 #like-that-ish .tt-no-photo .tt-credit{display:none;}
 #like-that-ish #subHeadline:empty{display:none;}
-
 </style>
 
 <div id="tt-nav-shell">
@@ -702,7 +738,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
     <button id="shareTopLink" type="button">Copy shareable link</button>
   </div>
 
-  <div id="results"></div>
+  <details class="tt-disclosure" id="importPanel"><summary>See your saved results in this layout<span class="tt-chevron" aria-hidden="true"></span></summary><div class="tt-detail-body"><label for="savedLink">Paste a short share link or an older long share link</label><input class="tt-input" id="savedLink" type="url" placeholder="https://www.thisplaceisjustlikethatplace.com/?share=…" autocomplete="off"><button class="tt-outline" id="loadSaved" type="button">Load saved results</button><p id="importStatus" role="status" aria-live="polite">Read-only: no new search and no saved results changed.</p></div></details><div class="tt-results-actions"><button class="tt-outline" id="expandDetails" type="button" aria-pressed="false">Expand all details</button><button class="tt-outline" id="previewEdit" type="button">← New search</button><button class="tt-outline" id="previewShare" type="button">Share these results</button></div><div id="results" aria-label="Matching places"></div><p class="tt-preview-footer">Different places. A familiar feeling.</p>
 
   <div id="shareBottom">
     <button id="shareResultsBtn" type="button">Share your results</button>
@@ -733,6 +769,40 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   // In this 2500px-wide artwork, y=88 stays safely above the yellow line
   // throughout the straight area and the start of the curve.
   function mountNavigation(){
+    const previewHeader = $("tt-preview-header");
+    if (previewHeader) {
+      previewHeader.append(navShell);
+      navShell.classList.add("tt-nav-ready");
+      const menu = $("tt-preview-menu");
+      function closePreviewMenu(returnFocus = false){
+        const wasOpen = previewHeader.classList.contains("tt-menu-open");
+        previewHeader.classList.remove("tt-menu-open");
+        menu.setAttribute("aria-expanded", "false");
+        menu.setAttribute("aria-label", "Open navigation");
+        closeInfoPanels();
+        if (returnFocus && wasOpen) menu.focus();
+      }
+      menu.addEventListener("click", () => {
+        const open = !previewHeader.classList.contains("tt-menu-open");
+        previewHeader.classList.toggle("tt-menu-open", open);
+        menu.setAttribute("aria-expanded", String(open));
+        menu.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+        if (!open) closeInfoPanels();
+      });
+      document.addEventListener("pointerdown", event => {
+        if (!previewHeader.contains(event.target)) closePreviewMenu();
+      });
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !navShell.querySelector(".tt-info-panel.is-open")) closePreviewMenu(true);
+      });
+      previewHeader.addEventListener("focusout", () => {
+        setTimeout(() => {
+          if (!previewHeader.contains(document.activeElement)) closePreviewMenu();
+        }, 0);
+      });
+      window.matchMedia("(max-width:759px)").addEventListener("change", () => closePreviewMenu());
+      return true;
+    }
     const stripe = $("tpljt-stripe");
     if (!stripe || !stripe.parentElement) return false;
     let header = $("tt-swoosh-header");
@@ -902,7 +972,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   let lastSnapshot = null;
   let savedShare = null;
   let sharing = false;
-  const SHARE_API = 'https://neighborhood-matches.vercel.app/api/share';
+  const SHARE_API = '/api/share';
 
   async function shareRequest(options, id){
     const controller = new AbortController();
@@ -994,6 +1064,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
     `;
   }
 
+
   const previewPhotos = [{"match":"Williamsburg","city":"Brooklyn","region":"New York, USA","file":"Domino Park, Brooklyn - 20220615 - 01 - view northward featuring skylines.jpg","author":"Andre Carrotflower","license":"4.0","alt":"Waterfront promenade at Domino Park in Williamsburg, Brooklyn"},{"match":"Ithaca","city":"Ithaca","region":"New York, USA","file":"Ithaca Falls.JPG","author":"Stilfehler at wikivoyage shared","license":"1.0","alt":"Ithaca Falls in Ithaca, New York"},{"match":"Hudson","city":"Hudson","region":"New York, USA","file":"Warren Street west view, Hudson, NY.jpg","author":"Daniel Case","license":"3.0","alt":"Looking west along Warren Street in Hudson, New York"},{"match":"Astoria","city":"New York","region":"New York, USA","file":"Astoria Park, Queens.jpg","author":"Rsmn","license":"CC0","alt":"Trees and paths in Astoria Park, Queens (2016)","src":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Astoria_Park%2C_Queens.jpg/960px-Astoria_Park%2C_Queens.jpg"},{"match":"Greenpoint","city":"New York","region":"New York, USA","file":"Greenpoint, Brooklyn 2009.JPG","author":"Jleon; crop by Beyond My Ken","license":"3.0","alt":"Manhattan Avenue streetscape in Greenpoint, Brooklyn (2009)","src":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Greenpoint%2C_Brooklyn_2009.JPG/960px-Greenpoint%2C_Brooklyn_2009.JPG"}];
   function detail(label, body){
     return '<details class="tt-disclosure"><summary>'+esc(label)+'<span class="tt-chevron" aria-hidden="true"></span></summary><div class="tt-detail-body">'+body+'</div></details>';
@@ -1007,8 +1078,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
     const landmarks = (item.landmarks||[]).map(l=>'<li><strong>'+esc(l.name)+'</strong> — '+esc(l.why)+'</li>').join('');
     const tags = (Array.isArray(item.tags)?item.tags:[]).map(chip).join('');
     // Exact location identity only. Unknown places get an honest fallback, not a random photo.
-    const boroughs = {Williamsburg:'Brooklyn', Greenpoint:'Brooklyn', Astoria:'Queens'};
-    const photo = previewPhotos.find(p=>p.match===item.match && (p.city===item.city || (boroughs[p.match] && [boroughs[p.match],'New York','New York City'].includes(item.city))) && p.region===item.region);
+    const photo = previewPhotos.find(p=>p.match===item.match && (p.city===item.city || (p.match==='Williamsburg' && item.city==='New York')) && p.region===item.region);
     const source = photo ? 'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(photo.file) : '';
     const imageUrl = photo ? (photo.src || 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(photo.file)+'?width=960') : '';
     const licenseUrl = photo && photo.license==='CC0' ? 'https://creativecommons.org/publicdomain/zero/1.0/' : 'https://creativecommons.org/licenses/by-sa/'+(photo ? photo.license : '')+'/';
@@ -1071,6 +1141,8 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   }
 
   async function copyFrozenLink(){
+    showToast('Sharing is unchanged on the live site. This preview does not save sample results.');
+    return;
     if (!lastSnapshot) { showToast("No results to share yet."); return; }
     if (sharing) return;
     sharing = true;
@@ -1106,6 +1178,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   }
 
   async function callAPI(place, region, priorities){
+    throw new Error('This is a design-only preview. Live searches are unchanged on the main website.');
     const r = await fetch(API_URL,{
       method:"POST", headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ place, region, priorities })
@@ -1116,9 +1189,12 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   }
 
   function render(list){
+    $('expandDetails').textContent = 'Expand all details';
+    $('expandDetails').setAttribute('aria-pressed','false');
     resultsEl.innerHTML = Array.isArray(list)&&list.length
       ? list.map(card).join("")
       : `<div style="color: rgba(75,46,31,.75); text-align:center;">No matches found.</div>`;
+    // Cached failures may finish before the error listener sees an event.
     resultsEl.querySelectorAll('.tt-photo').forEach(img => {
       if (img.complete && img.naturalWidth===0) showPhotoFallback(img);
     });
@@ -1175,6 +1251,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
     });
   });
 
+
   function showPhotoFallback(img){
     img.hidden = true;
     img.nextElementSibling.hidden = false;
@@ -1188,12 +1265,86 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
       frame.src = frame.dataset.src; frame.removeAttribute('data-src');
     });
   }, true);
+  $('previewEdit').addEventListener('click', () => {
+    const form = document.querySelector('#like-that-ish .tt-form');
+    form.hidden = !form.hidden;
+    if (!form.hidden) {
+      setStatus('Preview only. Search is disabled here to avoid AI charges.');
+      placeEl.focus();
+    }
+  });
 
+  function validateSaved(snap){
+    if (!snap || snap.v!==1 || typeof snap.place!=='string' || typeof snap.region!=='string' || !Array.isArray(snap.results) || snap.results.length<1 || snap.results.length>3) throw new Error('This link does not contain valid saved results.');
+    for (const r of snap.results) {
+      if (!r || typeof r.match!=='string' || typeof r.blurb!=='string' || typeof r.region!=='string') throw new Error('Incomplete saved result.');
+      for (const key of ['tags','whatMakesItSpecial']) {
+        if (r[key]!=null && (!Array.isArray(r[key]) || !r[key].every(x=>typeof x==='string'))) throw new Error('Invalid saved details.');
+      }
+      if (r.landmarks!=null && (!Array.isArray(r.landmarks) || !r.landmarks.every(x=>x && typeof x.name==='string' && typeof x.why==='string'))) throw new Error('Invalid saved places.');
+    }
+    return snap;
+  }
+  function savedLinkParts(value){
+    if (value.length>100000) throw new Error('This link is too large.');
+    let url;
+    try { url=new URL(value); } catch { throw new Error('Paste the full share link, starting with https://.'); }
+    if (url.protocol!=='https:' || !['www.thisplaceisjustlikethatplace.com','thisplaceisjustlikethatplace.com',location.hostname].includes(url.hostname) || url.username || url.password) throw new Error('Please use a share link from this website.');
+    if (url.searchParams.has('share')) {
+      const id=url.searchParams.get('share');
+      if (!/^[a-f0-9]{24}$/.test(id||'')) throw new Error('Invalid short share link.');
+      return {id};
+    }
+    const m=url.hash.match(/[#&]d=([^&]*)/);
+    if (!m) throw new Error('This is a search link, not saved results. Copy a share link from an existing result.');
+    return {snapshot:validateSaved(decodeSnapshot(m[1]))};
+  }
+  function showSaved(snap){
+    validateSaved(snap);
+    placeEl.value=snap.place; regionEl.value=snap.region;
+    lastSnapshot=snap;
+    render(snap.results);
+    document.querySelector('#like-that-ish .tt-title').textContent=snap.results.length+' places like '+snap.place+', in '+snap.region+'.';
+    $('subHeadline').textContent='The same saved recommendations, with all their details. Open each section below to explore.';
+    document.querySelector('#like-that-ish .tt-form').hidden=true;
+    setStatus('Saved results — no new search was run.');
+  }
+  $('expandDetails').addEventListener('click',()=>{
+    const sections=Array.from(resultsEl.querySelectorAll('details'));
+    const open=sections.some(x=>!x.open);
+    sections.forEach(x=>{x.open=open;});
+    $('expandDetails').textContent=open?'Collapse all details':'Expand all details';
+    $('expandDetails').setAttribute('aria-pressed',String(open));
+  });
+  $('loadSaved').addEventListener('click',async()=>{
+    const button=$('loadSaved'), status=$('importStatus');
+    button.disabled=true; status.textContent='Loading saved results…';
+    try {
+      const parsed=savedLinkParts($('savedLink').value.trim());
+      const snap=parsed.id ? (await shareRequest({method:'GET'},parsed.id)).snapshot : parsed.snapshot;
+      showSaved(snap);
+      status.textContent='Loaded all saved details. No new search was run.';
+    } catch(error) {
+      status.textContent=error.name==='AbortError'?'Loading timed out. Your existing results are still here.':error.message;
+    } finally {button.disabled=false;}
+  });
+
+  $('previewShare').addEventListener('click', copyFrozenLink);
   shareTopLink.addEventListener("click", copyFrozenLink);
   shareBtn.addEventListener("click",      copyFrozenLink);
 
   (async function hydrateFromUrl(){
     const qs = new URLSearchParams(location.search);
+    if (!qs.has('share') && !location.hash.includes('d=')) {
+      const sample = {"v":1,"place":"Austin","region":"New York","priorities":[],"results":[{"rank":1,"match":"Astoria","city":"New York","region":"New York, USA","blurb":"Astoria shares a vibrant cultural scene with a mix of diverse dining options and artistic venues, similar to Austen's community feel. However, it has a more urban pace and is closer to the bustling areas of Manhattan.","whatMakesItSpecial":["Rich Greek and Middle Eastern culinary scene","Home to the Museum of the Moving Image","Access to Astoria Park along the East River","Strong community vibe with local markets","Proximity to public transportation for easy city access"],"landmarks":[{"name":"Astoria Park","why":"Offers expansive green space and waterfront views, perfect for outdoor activities."}],"tags":["cultural","diverse","community","urban","foodie"],"news":null},{"rank":2,"match":"Greenpoint","city":"New York","region":"New York, USA","blurb":"Greenpoint features a blend of artistic spaces and local shops, akin to Austen's charm, with a strong sense of community. It is more residential and quieter than some other Brooklyn neighborhoods, providing a different pace.","whatMakesItSpecial":["Historic Polish community with authentic eateries","Beautiful waterfront parks with views of Manhattan","Art galleries and creative studios throughout the area","Strong local business presence with unique shops","Family-friendly atmosphere"],"landmarks":[{"name":"Transmitter Park","why":"A scenic waterfront park ideal for relaxation and community events."}],"tags":["artistic","community","residential","food","waterfront"],"news":null},{"rank":3,"match":"Williamsburg","city":"New York","region":"New York, USA","blurb":"Williamsburg offers a lively arts and music scene similar to Austen's creative spirit, with a plethora of dining and nightlife options. However, it tends to be more touristy and bustling compared to the quieter neighborhoods.","whatMakesItSpecial":["Vibrant street art and music culture","Diverse food scene with trendy restaurants","Access to the East River waterfront for recreational activities","Frequent cultural events and festivals","Strong nightlife with bars and music venues"],"landmarks":[{"name":"Brooklyn Brewery","why":"A popular local brewery that embodies the neighborhood's craft beer culture."}],"tags":["vibrant","artistic","trendy","nightlife","food"],"news":null}]};
+      placeEl.value = sample.place; regionEl.value = sample.region;
+      render(sample.results);
+      document.querySelector('#like-that-ish .tt-title').textContent = 'Your existing results, in a new layout.';
+      document.getElementById('subHeadline').textContent = '';
+      document.querySelector('#like-that-ish .tt-form').hidden = true;
+      setStatus('Text transcribed from your screenshot for layout comparison—not a new search or fact-check.');
+      return;
+    }
     const shareId = qs.get('share');
     if (qs.has('share')) {
       setLoading(true);
@@ -1208,7 +1359,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
         priorityEls.forEach(el => { el.checked = (snap.priorities || []).includes(el.value); });
         lastSnapshot = snap;
         savedShare = { key: JSON.stringify(snap), url: 'https://www.thisplaceisjustlikethatplace.com/?share=' + shareId };
-        render(snap.results);
+        showSaved(snap);
         showShareControls(true);
         setStatus('Saved results — no new search was run.');
       } catch (error) {
@@ -1235,7 +1386,7 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
       const savedPriorities = Array.isArray(snap.priorities) ? snap.priorities : [];
       priorityEls.forEach(el => { el.checked = savedPriorities.includes(el.value); });
       lastSnapshot = snap;
-      render(snap.results);
+      showSaved(snap);
       showShareControls(true);
       setStatus("");
       return;
@@ -1249,3 +1400,4 @@ body:not(.sqs-edit-mode) .tt-contact-connected .lightbox-handle-wrapper {
   })();
 })();
 </script>
+</body></html>
